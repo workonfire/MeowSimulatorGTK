@@ -6,11 +6,13 @@ from PySide6.QtGui import QIcon, QCursor, QAction
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PySide6.QtWidgets import QApplication, QPushButton, QLabel, QStatusBar, QMessageBox
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import Qt, QFile, QIODevice, QTimer, QUrl
+from PySide6.QtCore import Qt, QFile, QIODevice, QTimer, QUrl, QSettings
 
 app = QApplication([])
 
 assets = "/usr/share/meow-simulator/"
+
+settings = QSettings("wzium", "MeowSimulator")
 
 loader = QUiLoader()
 ui_file = QFile(assets + "window.ui")
@@ -33,7 +35,7 @@ button.setIcon(boykisser1)
 
 menu_action = window.findChild(QAction, "actionAbout")
 
-meows = 0
+meows = int(settings.value("meows") or 0)
 meows_text = "Meows: "
 status_label = QLabel(meows_text + str(meows))
 status_bar = window.findChild(QStatusBar, "statusbar")
@@ -47,8 +49,9 @@ def on_action_click():
     QMessageBox.information(window, 'UwU', "*purrs*", QMessageBox.Ok)
 
 def on_button_click():
-    global meows
+    global meows, settings
     meows += 1
+    settings.setValue("meows", meows)
     meow_file = f"meow{random.randrange(1, 5)}.mp3"
     player.setSource(QUrl.fromLocalFile(assets + meow_file))
     player.play()
