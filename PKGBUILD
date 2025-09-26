@@ -1,5 +1,5 @@
 pkgname=meow-simulator
-pkgver=1.0.0
+pkgver=1.0.1
 pkgrel=1
 pkgdesc="A boykisser on your computer"
 arch=('any')
@@ -20,7 +20,7 @@ source=(
 )
 sha256sums=('da377fe5b26e3b98d251a10d2f9456b9996e28ed916033ab296cf8b6a13b2481'
             'b1816dee92b26dc0ddce4a2264d33603a8b1831796688d5fe89f6e662aa92a4a'
-            '0161df285759ba581fe310fbda9fbf75b85c950ef118310f365fadf7697809ee'
+            '32861f451bda9e0138c8fbd5ea767a4c59515c52e2a30830ccae7f30c5c8dc82'
             '90fe347642159b3d429a7808559457647b7b3f044c13dd37712cbe583c7ee34c'
             'dc26bd73a2617b9bfb88e946f7b23a5c91f5b93ac0a996d045bd84c10fe4e312'
             '0929a7e2a946f521328746b4285e4832817a478bf750f355187b81f9fc8faa50'
