@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
+import os
 import random
+import sys
 
 from PySide6.QtGui import QIcon, QCursor, QAction
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
@@ -8,60 +10,85 @@ from PySide6.QtWidgets import QApplication, QPushButton, QLabel, QStatusBar, QMe
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import Qt, QFile, QIODevice, QTimer, QUrl, QSettings
 
-app = QApplication([])
 
-assets = "/usr/share/meow-simulator/"
+def resolve_assets():
+    system_assets = "/usr/share/meow-simulator"
+    base = system_assets if os.path.isdir(system_assets) else os.path.join(os.path.dirname(__file__), "assets")
+    return base + "/"
 
-settings = QSettings("wzium", "MeowSimulator")
 
-loader = QUiLoader()
-ui_file = QFile(assets + "window.ui")
-ui_file.open(QIODevice.ReadOnly)
-window = loader.load(ui_file)
-ui_file.close()
+class MeowSimulator:
+    MEOWS_TEXT = "Meows: "
 
-player = QMediaPlayer()
-audio_output = QAudioOutput()
-player.setAudioOutput(audio_output)
+    def __init__(self, assets):
+        self.assets = assets
+        self.settings = QSettings("wzium", "MeowSimulator")
+        self._load_ui()
+        self._setup_players()
+        self._setup_icons()
+        self._setup_widgets()
 
-boykisser1 = QIcon()
-boykisser1.addFile(assets + "static.png")
-boykisser2 = QIcon()
-boykisser2.addFile(assets + "static2.png")
-app.setWindowIcon(boykisser1)
+    def _load_ui(self):
+        loader = QUiLoader()
+        ui_file = QFile(self.assets + "window.ui")
+        ui_file.open(QIODevice.ReadOnly)
+        self.window = loader.load(ui_file)
+        ui_file.close()
 
-button = window.findChild(QPushButton, "meowButton")
-button.setIcon(boykisser1)
+    def _setup_players(self):
+        self._meow_audio = QAudioOutput()
+        self.meow_player = QMediaPlayer()
+        self.meow_player.setAudioOutput(self._meow_audio)
 
-menu_action = window.findChild(QAction, "actionAbout")
+        self._purr_audio = QAudioOutput()
+        self.purr_player = QMediaPlayer()
+        self.purr_player.setAudioOutput(self._purr_audio)
+        self.purr_player.setSource(QUrl.fromLocalFile(self.assets + "purr.mp3"))
+        self.purr_player.setLoops(QMediaPlayer.Infinite)
 
-meows = int(settings.value("meows") or 0)
-meows_text = "Meows: "
-status_label = QLabel(meows_text + str(meows))
-status_bar = window.findChild(QStatusBar, "statusbar")
-status_bar.addWidget(status_label)
+    def _setup_icons(self):
+        self.icon1 = QIcon()
+        self.icon1.addFile(self.assets + "static.png")
+        self.icon2 = QIcon()
+        self.icon2.addFile(self.assets + "static2.png")
+        QApplication.instance().setWindowIcon(self.icon1)
 
-def restore_button_state():
-    button.setIcon(boykisser1)
-    button.setCursor(QCursor(Qt.OpenHandCursor))
+    def _setup_widgets(self):
+        self.button = self.window.findChild(QPushButton, "meowButton")
+        self.button.setIcon(self.icon1)
+        self.button.clicked.connect(self._on_meow)
 
-def on_action_click():
-    QMessageBox.information(window, 'UwU', "*purrs*", QMessageBox.Ok)
+        self.meows = int(self.settings.value("meows") or 0)
+        self.status_label = QLabel(self.MEOWS_TEXT + str(self.meows))
+        self.window.findChild(QStatusBar, "statusbar").addWidget(self.status_label)
 
-def on_button_click():
-    global meows, settings
-    meows += 1
-    settings.setValue("meows", meows)
-    meow_file = f"meow{random.randrange(1, 5)}.mp3"
-    player.setSource(QUrl.fromLocalFile(assets + meow_file))
-    player.play()
-    button.setIcon(boykisser2)
-    button.setCursor(QCursor(Qt.ClosedHandCursor))
-    QTimer.singleShot(100, restore_button_state)
-    status_label.setText(meows_text + str(meows))
+        self.window.findChild(QAction, "actionAbout").triggered.connect(self._on_purr)
 
-button.clicked.connect(on_button_click)
-menu_action.triggered.connect(on_action_click)
+    def _restore_button(self):
+        self.button.setIcon(self.icon1)
+        self.button.setCursor(QCursor(Qt.OpenHandCursor))
 
-window.show()
-app.exec()
+    def _on_meow(self):
+        self.meows += 1
+        self.settings.setValue("meows", self.meows)
+        self.meow_player.setSource(QUrl.fromLocalFile(self.assets + f"meow{random.randrange(1, 5)}.mp3"))
+        self.meow_player.play()
+        self.button.setIcon(self.icon2)
+        self.button.setCursor(QCursor(Qt.ClosedHandCursor))
+        QTimer.singleShot(100, self._restore_button)
+        self.status_label.setText(self.MEOWS_TEXT + str(self.meows))
+
+    def _on_purr(self):
+        self.purr_player.play()
+        QMessageBox.information(self.window, 'UwU', "*purrs*", QMessageBox.Ok)
+        self.purr_player.stop()
+
+    def run(self):
+        self.window.show()
+        return QApplication.instance().exec()
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    sim = MeowSimulator(resolve_assets())
+    sys.exit(sim.run())

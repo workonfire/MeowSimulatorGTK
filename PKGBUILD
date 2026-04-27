@@ -1,35 +1,19 @@
 pkgname=meow-simulator
-pkgver=1.0.1
+pkgver=1.0.2
 pkgrel=1
 pkgdesc="A boykisser on your computer"
 arch=('any')
 depends=('pyside6' 'ffmpeg')
 source=(
-  'gif.gif'
-  'icon.qrc'
   'main.py'
-  'meow1.mp3'
-  'meow2.mp3'
-  'meow3.mp3'
-  'meow4.mp3'
-  'static2.gif'
-  'static2.png'
-  'static.png'
-  'window.ui'
   'meow-simulator.desktop'
 )
-sha256sums=('da377fe5b26e3b98d251a10d2f9456b9996e28ed916033ab296cf8b6a13b2481'
-            'b1816dee92b26dc0ddce4a2264d33603a8b1831796688d5fe89f6e662aa92a4a'
-            '32861f451bda9e0138c8fbd5ea767a4c59515c52e2a30830ccae7f30c5c8dc82'
-            '90fe347642159b3d429a7808559457647b7b3f044c13dd37712cbe583c7ee34c'
-            'dc26bd73a2617b9bfb88e946f7b23a5c91f5b93ac0a996d045bd84c10fe4e312'
-            '0929a7e2a946f521328746b4285e4832817a478bf750f355187b81f9fc8faa50'
-            '7b61b978d29a9c7f4dfee7ec11e4f68b27bf8c1424505f3620d5496f8d7763e2'
-            '288e2e43c286fb278b6b12722c30b486d0082759a479bf8b3f8c48eb75cc4696'
-            '74ac8e7f8c8433624ed9f8ea3e0bb6631f3dca16cc8a7c4b3c627d452fc8e130'
-            '136d024eb34221bd0f48888d2277d541d5660c5faa5541ad8bb8100483fbb368'
-            '4376d942e91b48089c3ee1962f4ff22ae3899d740527c973c3b245e019058930'
+sha256sums=('e7ff9c8d570ff886d110bc0acc22515f7da06ebbe37f8870fb72743dbb3f2e53'
             '98490fbd0d10eae4a844eda0d84bb592a512b7373ef2db009d135ff02cf78233')
+
+prepare() {
+  cp -r ../assets/* .
+}
 
 package() {
   install -Dm644 gif.gif "$pkgdir/usr/share/$pkgname/gif.gif"
@@ -39,6 +23,7 @@ package() {
   install -Dm644 meow2.mp3 "$pkgdir/usr/share/$pkgname/meow2.mp3"
   install -Dm644 meow3.mp3 "$pkgdir/usr/share/$pkgname/meow3.mp3"
   install -Dm644 meow4.mp3 "$pkgdir/usr/share/$pkgname/meow4.mp3"
+  install -Dm644 purr.mp3 "$pkgdir/usr/share/$pkgname/purr.mp3"
   install -Dm644 static2.gif "$pkgdir/usr/share/$pkgname/static2.gif"
   install -Dm644 static2.png "$pkgdir/usr/share/$pkgname/static2.png"
   install -Dm644 static.png "$pkgdir/usr/share/$pkgname/static.png"
