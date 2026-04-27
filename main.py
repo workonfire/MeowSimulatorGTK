@@ -90,5 +90,6 @@ class MeowSimulator:
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    app.setDesktopFileName("meow-simulator")
     sim = MeowSimulator(resolve_assets())
     sys.exit(sim.run())
