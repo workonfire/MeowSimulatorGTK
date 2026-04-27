@@ -8,7 +8,7 @@ source=(
   'main.py'
   'meow-simulator.desktop'
 )
-sha256sums=('e7ff9c8d570ff886d110bc0acc22515f7da06ebbe37f8870fb72743dbb3f2e53'
+sha256sums=('6f10641458a5c77d3517270b591c167ec53cd2cbd7ce0acc3934e851351e0c1f'
             '98490fbd0d10eae4a844eda0d84bb592a512b7373ef2db009d135ff02cf78233')
 
 prepare() {
