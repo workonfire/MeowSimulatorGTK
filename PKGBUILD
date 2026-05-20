@@ -1,34 +1,50 @@
 pkgname=meow-simulator
 pkgver=1.0.2
-pkgrel=2
+pkgrel=1
 pkgdesc="A boykisser on your computer"
-arch=('any')
-depends=('pyside6' 'ffmpeg')
+arch=('x86_64')
+depends=('gtk4')
+makedepends=('rust' 'cargo')
 source=(
-  'main.py'
+  'Cargo.toml'
+  'Cargo.lock'
+  'src/main.rs'
   'meow-simulator.desktop'
+  'assets/gif.gif'
+  'assets/meow1.mp3'
+  'assets/meow2.mp3'
+  'assets/meow3.mp3'
+  'assets/meow4.mp3'
+  'assets/purr.mp3'
+  'assets/static2.gif'
+  'assets/static2.png'
+  'assets/static.png'
 )
-sha256sums=('6f10641458a5c77d3517270b591c167ec53cd2cbd7ce0acc3934e851351e0c1f'
-            '98490fbd0d10eae4a844eda0d84bb592a512b7373ef2db009d135ff02cf78233')
+sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP)
 
 prepare() {
-  cp -r ../assets/* .
+  mkdir -p src assets
+  cp ../src/main.rs src/
+  cp ../assets/*.mp3 ../assets/*.png ../assets/*.gif assets/
+}
+
+build() {
+  cargo build --release --locked --manifest-path Cargo.toml
 }
 
 package() {
-  install -Dm644 gif.gif "$pkgdir/usr/share/$pkgname/gif.gif"
-  install -Dm644 icon.qrc "$pkgdir/usr/share/$pkgname/icon.qrc"
-  install -Dm644 main.py "$pkgdir/usr/bin/$pkgname"
-  install -Dm644 meow1.mp3 "$pkgdir/usr/share/$pkgname/meow1.mp3"
-  install -Dm644 meow2.mp3 "$pkgdir/usr/share/$pkgname/meow2.mp3"
-  install -Dm644 meow3.mp3 "$pkgdir/usr/share/$pkgname/meow3.mp3"
-  install -Dm644 meow4.mp3 "$pkgdir/usr/share/$pkgname/meow4.mp3"
-  install -Dm644 purr.mp3 "$pkgdir/usr/share/$pkgname/purr.mp3"
-  install -Dm644 static2.gif "$pkgdir/usr/share/$pkgname/static2.gif"
-  install -Dm644 static2.png "$pkgdir/usr/share/$pkgname/static2.png"
-  install -Dm644 static.png "$pkgdir/usr/share/$pkgname/static.png"
-  install -Dm644 window.ui "$pkgdir/usr/share/$pkgname/window.ui"
-  install -Dm644 meow-simulator.desktop "$pkgdir/usr/share/applications/$pkgname.desktop"
+  install -Dm755 target/release/MeowSimulatorRust "$pkgdir/usr/bin/$pkgname"
 
-  chmod +x "$pkgdir/usr/bin/$pkgname"
+  local share="$pkgdir/usr/share/$pkgname"
+  install -Dm644 assets/gif.gif       "$share/gif.gif"
+  install -Dm644 assets/meow1.mp3     "$share/meow1.mp3"
+  install -Dm644 assets/meow2.mp3     "$share/meow2.mp3"
+  install -Dm644 assets/meow3.mp3     "$share/meow3.mp3"
+  install -Dm644 assets/meow4.mp3     "$share/meow4.mp3"
+  install -Dm644 assets/purr.mp3      "$share/purr.mp3"
+  install -Dm644 assets/static2.gif   "$share/static2.gif"
+  install -Dm644 assets/static2.png   "$share/static2.png"
+  install -Dm644 assets/static.png    "$share/static.png"
+
+  install -Dm644 meow-simulator.desktop "$pkgdir/usr/share/applications/$pkgname.desktop"
 }
