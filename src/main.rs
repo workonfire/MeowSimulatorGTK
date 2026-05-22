@@ -123,6 +123,8 @@ fn build_ui(app: &Application) {
     vbox.set_margin_bottom(20);
     vbox.set_margin_start(20);
     vbox.set_margin_end(20);
+    vbox.set_halign(gtk4::Align::Center);
+    vbox.set_valign(gtk4::Align::Center);
     vbox.append(&button);
     vbox.append(&meow_label);
 
