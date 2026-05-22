@@ -137,7 +137,7 @@ fn build_ui(app: &Application) {
     menu.append(Some("Purr"), Some("app.purr"));
     let popover = gtk4::PopoverMenu::from_model(Some(&menu));
     menu_button.set_popover(Some(&popover));
-    header.pack_end(&menu_button);
+    header.pack_start(&menu_button);
 
     window.set_titlebar(Some(&header));
     window.set_child(Some(&vbox));
