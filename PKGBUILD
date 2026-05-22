@@ -3,7 +3,7 @@ pkgver=1.0.2
 pkgrel=1
 pkgdesc="A boykisser on your computer"
 arch=('x86_64')
-depends=('gtk4')
+depends=('gtk4' 'libadwaita')
 makedepends=('rust')
 options=('!strip')
 source=()
@@ -24,5 +24,6 @@ package() {
   install -Dm644 "$startdir/assets/static.png"  "$share/static.png"
   install -Dm644 "$startdir/assets/static2.png" "$share/static2.png"
 
-  install -Dm644 "$startdir/meow-simulator.desktop" "$pkgdir/usr/share/applications/$pkgname.desktop"
+  install -Dm644 "$startdir/assets/static.png" "$pkgdir/usr/share/icons/hicolor/256x256/apps/$pkgname.png"
+  install -Dm644 "$startdir/com.wzium.MeowSimulator.desktop" "$pkgdir/usr/share/applications/com.wzium.MeowSimulator.desktop"
 }

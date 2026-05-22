@@ -1,8 +1,0 @@
-[Desktop Entry]
-Name=Meow Simulator
-Comment=A boykisser on your computer
-Exec=/usr/bin/meow-simulator
-Icon=/usr/share/meow-simulator/static.png
-Terminal=false
-Type=Application
-Categories=Utility;Application;

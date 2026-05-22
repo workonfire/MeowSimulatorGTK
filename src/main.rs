@@ -8,9 +8,10 @@ use std::sync::{Arc, Mutex};
 use cpal::traits::HostTrait;
 use gtk4::prelude::*;
 use gtk4::{
-    Application, ApplicationWindow, Box as GtkBox, Button, Image, Label, MenuButton,
+    ApplicationWindow, Box as GtkBox, Button, Image, Label, MenuButton,
     Orientation, HeaderBar, gio, glib,
 };
+use libadwaita as adw;
 use rand::Rng;
 use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink};
 use serde::{Deserialize, Serialize};
@@ -85,7 +86,7 @@ fn try_open_output_stream() -> Option<(OutputStream, OutputStreamHandle)> {
     None
 }
 
-fn build_ui(app: &Application) {
+fn build_ui(app: &adw::Application) {
     let assets = resolve_assets();
     let config = load_config();
     let meows = Rc::new(Cell::new(config.meows));
@@ -207,7 +208,8 @@ fn build_ui(app: &Application) {
 }
 
 fn main() {
-    let app = Application::builder().application_id(APP_ID).build();
+    glib::set_application_name("Meow Simulator");
+    let app = adw::Application::builder().application_id(APP_ID).build();
     app.connect_activate(build_ui);
     app.run();
 }
