@@ -134,7 +134,7 @@ fn build_ui(app: &Application) {
     menu_button.set_icon_name("open-menu-symbolic");
 
     let menu = gio::Menu::new();
-    menu.append(Some("About / Purr"), Some("app.purr"));
+    menu.append(Some("Purr"), Some("app.purr"));
     let popover = gtk4::PopoverMenu::from_model(Some(&menu));
     menu_button.set_popover(Some(&popover));
     header.pack_end(&menu_button);
