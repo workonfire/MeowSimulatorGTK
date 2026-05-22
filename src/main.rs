@@ -1,3 +1,4 @@
+#![windows_subsystem = "windows"]
 use std::cell::Cell;
 use std::fs;
 use std::io::BufReader;
