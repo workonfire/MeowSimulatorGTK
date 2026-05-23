@@ -58,10 +58,13 @@ fn save_config(config: &Config) {
 fn resolve_assets() -> PathBuf {
     let system = Path::new("/usr/share/meow-simulator");
     if system.is_dir() {
-        system.to_path_buf()
-    } else {
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("assets")
+        return system.to_path_buf();
     }
+
+    std::env::current_exe()
+    .ok()
+    .and_then(|exe| exe.parent().map(|p| p.join("assets")))
+    .unwrap_or_else(|| PathBuf::from("assets"))
 }
 
 fn play_sound(handle: &OutputStreamHandle, path: &Path) {
