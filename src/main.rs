@@ -60,11 +60,15 @@ fn resolve_assets() -> PathBuf {
     if system.is_dir() {
         return system.to_path_buf();
     }
-
-    std::env::current_exe()
-    .ok()
-    .and_then(|exe| exe.parent().map(|p| p.join("assets")))
-    .unwrap_or_else(|| PathBuf::from("assets"))
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            let local = dir.join("assets");
+            if local.is_dir() {
+                return local;
+            }
+        }
+    }
+    panic!("could not locate assets directory");
 }
 
 fn play_sound(handle: &OutputStreamHandle, path: &Path) {
