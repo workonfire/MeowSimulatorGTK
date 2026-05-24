@@ -9,7 +9,7 @@ TARBALL   := dist/meow-simulator-linux.tar.gz
 
 OS := $(shell uname -s)
 
-.PHONY: all package package-windows package-linux pkgbuild install uninstall build check-ucrt64 clean
+.PHONY: all package package-windows package-linux pkgbuild install uninstall build check-rust check-ucrt64 clean
 
 all: package
 
@@ -24,7 +24,14 @@ endif
 
 # ── Windows ───────────────────────────────────────────────────────────────────
 
-check-ucrt64:
+check-rust:
+	@command -v rustc >/dev/null 2>&1 \
+	  || { echo "error: rustc not found — install Rust from https://rustup.rs or: pacman -S mingw-w64-ucrt-x86_64-rust"; exit 1; }
+	@rustc -vV 2>/dev/null | grep -q 'host:.*-gnu' \
+	  || { echo "error: Rust GNU toolchain required — current host: $$(rustc -vV | grep host)"; \
+	       echo "       install with: pacman -S mingw-w64-ucrt-x86_64-rust"; exit 1; }
+
+check-ucrt64: check-rust
 	@test -d /ucrt64 \
 	  || { echo "error: /ucrt64 not found — install the MSYS2 UCRT64 toolchain"; exit 1; }
 	@for pkg in mingw-w64-ucrt-x86_64-gtk4 mingw-w64-ucrt-x86_64-pkgconf \
