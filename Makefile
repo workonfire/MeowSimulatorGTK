@@ -9,22 +9,35 @@ TARBALL   := dist/meow-simulator-linux.tar.gz
 
 OS := $(shell uname -s)
 
-.PHONY: all package package-windows package-linux pkgbuild install uninstall build clean
+.PHONY: all package package-windows package-linux pkgbuild install uninstall build check-ucrt64 clean
 
 all: package
 
 package:
 ifeq ($(OS),Linux)
 	$(MAKE) package-linux
-else
+else ifeq ($(OS),Windows_NT)
 	$(MAKE) package-windows
+else
+	$(error Unsupported OS: $(OS). Use 'make package-linux' or 'make package-windows' explicitly.)
 endif
 
 # ── Windows ───────────────────────────────────────────────────────────────────
 
+check-ucrt64:
+	@test -d /ucrt64 \
+	  || { echo "error: /ucrt64 not found — install the MSYS2 UCRT64 toolchain"; exit 1; }
+	@for pkg in mingw-w64-ucrt-x86_64-gtk4 mingw-w64-ucrt-x86_64-pkgconf \
+	            mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-vulkan-loader; do \
+	  pacman -Q $$pkg >/dev/null 2>&1 \
+	    || { echo "error: $$pkg not installed — run: pacman -S $$pkg"; exit 1; }; \
+	done
+	@command -v zip >/dev/null 2>&1 \
+	  || { echo "error: zip not found — run: pacman -S zip"; exit 1; }
+
 package-windows: $(ZIP)
 
-$(ZIP): build
+$(ZIP): check-ucrt64 build
 	rm -rf $(DIST_WIN)
 	mkdir -p $(DIST_WIN)/share/glib-2.0
 	cp $(RELEASE)/$(BINARY).exe $(DIST_WIN)/
