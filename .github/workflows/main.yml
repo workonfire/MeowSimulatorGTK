@@ -42,7 +42,7 @@ jobs:
         run: make package-linux
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: meow-simulator-linux
           path: dist/meow-simulator-linux.tar.gz
@@ -90,7 +90,7 @@ jobs:
         run: make package-windows
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: meow-simulator-windows
           path: dist/windows/
