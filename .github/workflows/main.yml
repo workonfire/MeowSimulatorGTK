@@ -20,9 +20,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libgtk-4-dev \
-            libvulkan-dev \
-            pkg-config \
-            libasound2-dev
+            libadwaita-1-dev \
+            libasound2-dev \
+            pkg-config
 
       - name: Cache Cargo
         uses: actions/cache@v4
