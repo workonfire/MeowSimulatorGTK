@@ -12,17 +12,22 @@ jobs:
 
   linux:
     runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libgtk-4-dev \
-            libadwaita-1-dev \
-            libasound2-dev \
-            pkg-config
+          pacman -Syu --noconfirm \
+            gtk4 \
+            libadwaita \
+            alsa-lib \
+            pkgconf \
+            rust \
+            make \
+            base-devel \
+            tar
 
       - name: Cache Cargo
         uses: actions/cache@v4
