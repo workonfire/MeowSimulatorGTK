@@ -46,6 +46,7 @@ jobs:
         with:
           name: meow-simulator-linux
           path: dist/meow-simulator-linux.tar.gz
+          compression-level: 0
 
   windows:
     runs-on: windows-latest
