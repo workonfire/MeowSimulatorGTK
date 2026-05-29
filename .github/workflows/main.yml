@@ -92,4 +92,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: meow-simulator-windows
-          path: dist/meow-simulator-windows.zip
+          path: dist/windows/
