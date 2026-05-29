@@ -21,7 +21,8 @@ jobs:
           sudo apt-get install -y \
             libgtk-4-dev \
             libvulkan-dev \
-            pkg-config
+            pkg-config \
+            libasound2-dev
 
       - name: Cache Cargo
         uses: actions/cache@v4
