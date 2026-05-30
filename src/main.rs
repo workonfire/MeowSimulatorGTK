@@ -9,7 +9,6 @@ use gtk4::{
     ApplicationWindow, Box as GtkBox, Button, Image, Label, MenuButton,
     Orientation, HeaderBar, gio, glib,
 };
-#[cfg(target_os = "linux")]
 use libadwaita as adw;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -18,10 +17,7 @@ use gst::prelude::*;
 
 const APP_ID: &str = "com.wzium.MeowSimulator";
 
-#[cfg(target_os = "linux")]
 type AppType = adw::Application;
-#[cfg(not(target_os = "linux"))]
-type AppType = gtk4::Application;
 
 #[derive(Serialize, Deserialize, Default)]
 struct Config {
@@ -256,10 +252,7 @@ fn main() {
     gst::init().expect("GStreamer init failed");
 
     glib::set_application_name("Meow Simulator");
-    #[cfg(target_os = "linux")]
     let app = adw::Application::builder().application_id(APP_ID).build();
-    #[cfg(not(target_os = "linux"))]
-    let app = gtk4::Application::builder().application_id(APP_ID).build();
     app.connect_activate(build_ui);
     app.run();
 }

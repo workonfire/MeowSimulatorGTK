@@ -38,7 +38,8 @@ check-ucrt64: check-rust
 	@for pkg in mingw-w64-ucrt-x86_64-gtk4 mingw-w64-ucrt-x86_64-pkgconf \
 	            mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-vulkan-loader \
 	            mingw-w64-ucrt-x86_64-gstreamer mingw-w64-ucrt-x86_64-gst-plugins-base \
-	            mingw-w64-ucrt-x86_64-gst-plugins-good mingw-w64-ucrt-x86_64-gst-plugins-bad; do \
+	            mingw-w64-ucrt-x86_64-gst-plugins-good mingw-w64-ucrt-x86_64-gst-plugins-bad \
+	            mingw-w64-ucrt-x86_64-libadwaita; do \
 	  pacman -Q $$pkg >/dev/null 2>&1 \
 	    || { echo "error: $$pkg not installed — run: pacman -S $$pkg"; exit 1; }; \
 	done
