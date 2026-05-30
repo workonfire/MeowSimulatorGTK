@@ -62,20 +62,19 @@ $(ZIP): check-ucrt64 build
 	glib-compile-schemas $(DIST_WIN)/share/glib-2.0/schemas/
 	cp -r $(RELEASE)/assets $(DIST_WIN)/
 	mkdir -p $(DIST_WIN)/lib/gstreamer-1.0
-	cp /ucrt64/lib/gstreamer-1.0/*.dll $(DIST_WIN)/lib/gstreamer-1.0/
-	cp /ucrt64/libexec/gstreamer-1.0/gst-plugin-scanner.exe $(DIST_WIN)/
+	for plugin in gstcoreelements gstplayback gsttypefindfunctions \
+	              gstaudioconvert gstaudioresample gstvolume \
+	              gstautodetect gstmpg123 gstaudioparsers \
+	              gstwasapi2 gstid3demux gstgio; do \
+	  cp /ucrt64/lib/gstreamer-1.0/$$plugin.dll $(DIST_WIN)/lib/gstreamer-1.0/; \
+	done
 	for dll in $(DIST_WIN)/lib/gstreamer-1.0/*.dll; do \
 	  ldd "$$dll" 2>/dev/null | grep -i ucrt64 | awk '{print $$3}' | xargs -I{} cp -n {} $(DIST_WIN)/; \
 	done
-	ldd $(DIST_WIN)/gst-plugin-scanner.exe 2>/dev/null \
-	  | grep -i ucrt64 | awk '{print $$3}' | xargs -I{} cp -n {} $(DIST_WIN)/
 	mkdir -p $(DIST_WIN)/lib/gdk-pixbuf-2.0/2.10.0/loaders
-	cp /ucrt64/lib/gdk-pixbuf-2.0/2.10.0/loaders/*.dll $(DIST_WIN)/lib/gdk-pixbuf-2.0/2.10.0/loaders/
-	cp /ucrt64/bin/gdk-pixbuf-query-loaders.exe $(DIST_WIN)/
-	for dll in $(DIST_WIN)/lib/gdk-pixbuf-2.0/2.10.0/loaders/*.dll; do \
-	  ldd "$$dll" 2>/dev/null | grep -i ucrt64 | awk '{print $$3}' | xargs -I{} cp -n {} $(DIST_WIN)/; \
-	done
-	ldd $(DIST_WIN)/gdk-pixbuf-query-loaders.exe 2>/dev/null \
+	cp /ucrt64/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-png.dll \
+	   $(DIST_WIN)/lib/gdk-pixbuf-2.0/2.10.0/loaders/
+	ldd /ucrt64/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-png.dll 2>/dev/null \
 	  | grep -i ucrt64 | awk '{print $$3}' | xargs -I{} cp -n {} $(DIST_WIN)/
 	cd dist && zip -r meow-simulator-windows.zip windows/
 

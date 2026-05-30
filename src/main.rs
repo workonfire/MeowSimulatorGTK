@@ -236,35 +236,17 @@ fn build_ui(app: &AppType) {
 
 #[cfg(target_os = "windows")]
 fn setup_windows_env(exe_dir: &Path) {
-    use std::os::windows::process::CommandExt;
     // safe: called before gst::init() and GTK init, still single-threaded
     unsafe {
         std::env::set_var("GST_PLUGIN_PATH", exe_dir.join("lib/gstreamer-1.0"));
-        std::env::set_var("GST_PLUGIN_SCANNER", exe_dir.join("gst-plugin-scanner.exe"));
+        // disable out-of-process scanner — spawning a subprocess per plugin is slow on Windows;
+        // in-process loading is fine for bundled plugins we control
+        std::env::set_var("GST_PLUGIN_SCANNER", "");
+        // store registry next to the exe so it persists across launches
+        std::env::set_var("GST_REGISTRY", exe_dir.join("gstreamer-registry.bin"));
+        // point GDK-Pixbuf at the bundled loaders directory directly — no cache file needed
+        std::env::set_var("GDK_PIXBUF_MODULEDIR", exe_dir.join("lib/gdk-pixbuf-2.0/2.10.0/loaders"));
     }
-
-    let loaders_dir = exe_dir.join("lib/gdk-pixbuf-2.0/2.10.0/loaders");
-    let cache = exe_dir.join("lib/gdk-pixbuf-2.0/2.10.0/loaders.cache");
-    let query_tool = exe_dir.join("gdk-pixbuf-query-loaders.exe");
-
-    if query_tool.exists() {
-        if let Ok(entries) = fs::read_dir(&loaders_dir) {
-            let dlls: Vec<_> = entries
-                .filter_map(|e| e.ok())
-                .map(|e| e.path())
-                .filter(|p| p.extension().map_or(false, |e| e == "dll"))
-                .collect();
-            if let Ok(out) = std::process::Command::new(&query_tool)
-                .args(&dlls)
-                .creation_flags(0x08000000) // CREATE_NO_WINDOW
-                .output()
-            {
-                let _ = fs::write(&cache, &out.stdout);
-            }
-        }
-    }
-
-    unsafe { std::env::set_var("GDK_PIXBUF_MODULE_FILE", &cache); }
 }
 
 fn main() {
