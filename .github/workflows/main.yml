@@ -97,5 +97,4 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: meow-simulator-windows
-          path: dist/meow-simulator-windows.zip
-          compression-level: 0
+          path: dist/windows/

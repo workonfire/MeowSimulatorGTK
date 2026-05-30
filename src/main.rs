@@ -72,8 +72,18 @@ fn resolve_assets() -> PathBuf {
     panic!("could not locate assets directory");
 }
 
+fn path_to_uri(path: &Path) -> String {
+    #[cfg(target_os = "windows")]
+    {
+        let s = path.to_string_lossy().replace('\\', "/");
+        return format!("file:///{s}");
+    }
+    #[cfg(not(target_os = "windows"))]
+    format!("file://{}", path.display())
+}
+
 fn play_sound(path: &Path) {
-    let uri = format!("file://{}", path.display());
+    let uri = path_to_uri(path);
     match gst::ElementFactory::make("playbin")
         .property("uri", &uri)
         .build()
@@ -99,7 +109,7 @@ fn play_sound(path: &Path) {
 }
 
 fn play_purr(path: &Path) -> Option<gst::Element> {
-    let uri = format!("file://{}", path.display());
+    let uri = path_to_uri(path);
     let playbin = gst::ElementFactory::make("playbin")
         .property("uri", &uri)
         .build()
@@ -226,6 +236,7 @@ fn build_ui(app: &AppType) {
 
 #[cfg(target_os = "windows")]
 fn setup_windows_env(exe_dir: &Path) {
+    use std::os::windows::process::CommandExt;
     // safe: called before gst::init() and GTK init, still single-threaded
     unsafe {
         std::env::set_var("GST_PLUGIN_PATH", exe_dir.join("lib/gstreamer-1.0"));
@@ -243,7 +254,11 @@ fn setup_windows_env(exe_dir: &Path) {
                 .map(|e| e.path())
                 .filter(|p| p.extension().map_or(false, |e| e == "dll"))
                 .collect();
-            if let Ok(out) = std::process::Command::new(&query_tool).args(&dlls).output() {
+            if let Ok(out) = std::process::Command::new(&query_tool)
+                .args(&dlls)
+                .creation_flags(0x08000000) // CREATE_NO_WINDOW
+                .output()
+            {
                 let _ = fs::write(&cache, &out.stdout);
             }
         }
