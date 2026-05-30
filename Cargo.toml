@@ -16,5 +16,5 @@ cpal = "0.15"
 libadwaita = { version = "0.7", features = ["v1_6"] }
 
 [target.'cfg(target_os = "windows")'.build-dependencies]
-image = { version = "0.25", default-features = false, features = ["png"] }
+image = { version = "0.25", default-features = false, features = ["png", "ico"] }
 winresource = "0.1"
