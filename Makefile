@@ -62,10 +62,10 @@ $(ZIP): check-ucrt64 build
 	glib-compile-schemas $(DIST_WIN)/share/glib-2.0/schemas/
 	cp -r $(RELEASE)/assets $(DIST_WIN)/
 	mkdir -p $(DIST_WIN)/lib/gstreamer-1.0
-	for plugin in gstcoreelements gstplayback gsttypefindfunctions \
-	              gstaudioconvert gstaudioresample gstvolume \
-	              gstautodetect gstmpg123 gstaudioparsers \
-	              gstwasapi2 gstid3demux gstgio; do \
+	for plugin in libgstcoreelements libgstplayback libgsttypefindfunctions \
+	              libgstaudioconvert libgstaudioresample libgstvolume \
+	              libgstautodetect libgstmpg123 libgstaudioparsers \
+	              libgstwasapi2 libgstid3demux libgstgio; do \
 	  cp /ucrt64/lib/gstreamer-1.0/$$plugin.dll $(DIST_WIN)/lib/gstreamer-1.0/; \
 	done
 	for dll in $(DIST_WIN)/lib/gstreamer-1.0/*.dll; do \
