@@ -38,8 +38,7 @@ check-ucrt64: check-rust
 	@for pkg in mingw-w64-ucrt-x86_64-gtk4 mingw-w64-ucrt-x86_64-pkgconf \
 	            mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-vulkan-loader \
 	            mingw-w64-ucrt-x86_64-gstreamer mingw-w64-ucrt-x86_64-gst-plugins-base \
-	            mingw-w64-ucrt-x86_64-gst-plugins-good mingw-w64-ucrt-x86_64-gst-plugins-bad \
-	            mingw-w64-ucrt-x86_64-gst-plugins-ugly; do \
+	            mingw-w64-ucrt-x86_64-gst-plugins-good mingw-w64-ucrt-x86_64-gst-plugins-bad; do \
 	  pacman -Q $$pkg >/dev/null 2>&1 \
 	    || { echo "error: $$pkg not installed — run: pacman -S $$pkg"; exit 1; }; \
 	done
@@ -58,14 +57,15 @@ $(ZIP): check-ucrt64 build
 	  | xargs -I{} cp {} $(DIST_WIN)/
 	cp /ucrt64/bin/vulkan-1.dll $(DIST_WIN)/
 	cp -r /ucrt64/share/glib-2.0/schemas $(DIST_WIN)/share/glib-2.0/
-	cp -r /ucrt64/share/icons $(DIST_WIN)/share/
+	mkdir $(DIST_WIN)/share/icons
+	cp -r /ucrt64/share/icons/Adwaita $(DIST_WIN)/share/icons/
 	glib-compile-schemas $(DIST_WIN)/share/glib-2.0/schemas/
 	cp -r $(RELEASE)/assets $(DIST_WIN)/
 	mkdir -p $(DIST_WIN)/lib/gstreamer-1.0
 	for plugin in libgstcoreelements libgstplayback libgsttypefindfunctions \
 	              libgstaudioconvert libgstaudioresample libgstvolume \
-	              libgstautodetect libgstmpg123 libgstaudioparsers \
-	              libgstwasapi2 libgstid3demux libgstgio; do \
+	              libgstautodetect libgstogg libgstopus \
+	              libgstwasapi2 libgstgio; do \
 	  cp /ucrt64/lib/gstreamer-1.0/$$plugin.dll $(DIST_WIN)/lib/gstreamer-1.0/; \
 	done
 	for dll in $(DIST_WIN)/lib/gstreamer-1.0/*.dll; do \

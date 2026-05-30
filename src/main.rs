@@ -84,27 +84,23 @@ fn path_to_uri(path: &Path) -> String {
 
 fn play_sound(path: &Path) {
     let uri = path_to_uri(path);
-    match gst::ElementFactory::make("playbin")
+    if let Ok(playbin) = gst::ElementFactory::make("playbin")
         .property("uri", &uri)
         .build()
     {
-        Ok(playbin) => {
-            let _ = playbin.set_state(gst::State::Playing);
-            let bus = playbin.bus().unwrap();
-            glib::MainContext::default().spawn_local(async move {
-                let mut stream = bus.stream();
-                use futures_util::StreamExt;
-                while let Some(msg) = stream.next().await {
-                    use gst::MessageView;
-                    match msg.view() {
-                        MessageView::Eos(_) | MessageView::Error(_) => break,
-                        _ => {}
-                    }
+        let _ = playbin.set_state(gst::State::Playing);
+        let bus = playbin.bus().unwrap();
+        glib::MainContext::default().spawn_local(async move {
+            let mut stream = bus.stream();
+            use futures_util::StreamExt;
+            while let Some(msg) = stream.next().await {
+                match msg.view() {
+                    gst::MessageView::Eos(_) | gst::MessageView::Error(_) => break,
+                    _ => {}
                 }
-                let _ = playbin.set_state(gst::State::Null);
-            });
-        }
-        Err(e) => eprintln!("play_sound: {e}"),
+            }
+            let _ = playbin.set_state(gst::State::Null);
+        });
     }
 }
 
@@ -185,7 +181,7 @@ fn build_ui(app: &AppType) {
         let purr_action = gio::SimpleAction::new("purr", None);
 
         purr_action.connect_activate(move |_, _| {
-            let purr = play_purr(&assets.join("purr.mp3"));
+            let purr = play_purr(&assets.join("purr.ogg"));
 
             if let Some(win) = window_weak.upgrade() {
                 let dialog = gtk4::AlertDialog::builder()
@@ -220,7 +216,7 @@ fn build_ui(app: &AppType) {
             meow_label.set_text(&format!("Meows: {count}"));
 
             let n = rand::thread_rng().gen_range(1..=4);
-            play_sound(&assets.join(format!("meow{n}.mp3")));
+            play_sound(&assets.join(format!("meow{n}.ogg")));
 
             image.set_from_file(Some(&icon2));
             let image = image.clone();

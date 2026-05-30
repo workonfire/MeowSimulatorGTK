@@ -12,9 +12,11 @@ fn main() {
 
     for entry in fs::read_dir("assets").unwrap() {
         let entry = entry.unwrap();
-        println!("cargo:rerun-if-changed={}", entry.path().display());
-        let dest_file = dest.join(entry.file_name());
-        fs::copy(entry.path(), dest_file).unwrap();
+        let path = entry.path();
+        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+        if !matches!(ext, "ogg" | "png") { continue; }
+        println!("cargo:rerun-if-changed={}", path.display());
+        fs::copy(&path, dest.join(entry.file_name())).unwrap();
     }
 
     #[cfg(target_os = "windows")]
