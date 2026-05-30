@@ -8,6 +8,7 @@ fn main() {
     let target_dir = Path::new(&out).ancestors().nth(3).unwrap().to_path_buf();
     let dest = target_dir.join("assets");
 
+    if dest.exists() { fs::remove_dir_all(&dest).unwrap(); }
     fs::create_dir_all(&dest).unwrap();
 
     for entry in fs::read_dir("assets").unwrap() {
