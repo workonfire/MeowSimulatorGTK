@@ -1,12 +1,9 @@
 #![windows_subsystem = "windows"]
 use std::cell::Cell;
-use std::fs;
-use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::fs;
 
-use cpal::traits::HostTrait;
 use gtk4::prelude::*;
 use gtk4::{
     ApplicationWindow, Box as GtkBox, Button, Image, Label, MenuButton,
@@ -15,8 +12,19 @@ use gtk4::{
 #[cfg(target_os = "linux")]
 use libadwaita as adw;
 use rand::Rng;
-use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink};
 use serde::{Deserialize, Serialize};
+
+#[cfg(target_os = "linux")]
+use gstreamer as gst;
+#[cfg(target_os = "linux")]
+use gst::prelude::*;
+
+#[cfg(target_os = "windows")]
+use std::io::BufReader;
+#[cfg(target_os = "windows")]
+use std::sync::{Arc, Mutex};
+#[cfg(target_os = "windows")]
+use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink};
 
 const APP_ID: &str = "com.wzium.MeowSimulator";
 
@@ -71,6 +79,58 @@ fn resolve_assets() -> PathBuf {
     panic!("could not locate assets directory");
 }
 
+#[cfg(target_os = "linux")]
+fn play_sound(path: &Path) {
+    let uri = format!("file://{}", path.display());
+    match gst::ElementFactory::make("playbin")
+        .property("uri", &uri)
+        .build()
+    {
+        Ok(playbin) => {
+            let _ = playbin.set_state(gst::State::Playing);
+            let bus = playbin.bus().unwrap();
+            glib::MainContext::default().spawn_local(async move {
+                let mut stream = bus.stream();
+                use futures_util::StreamExt;
+                while let Some(msg) = stream.next().await {
+                    use gst::MessageView;
+                    match msg.view() {
+                        MessageView::Eos(_) | MessageView::Error(_) => break,
+                        _ => {}
+                    }
+                }
+                let _ = playbin.set_state(gst::State::Null);
+            });
+        }
+        Err(e) => eprintln!("play_sound: {e}"),
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn play_purr(path: &Path) -> Option<gst::Element> {
+    let uri = format!("file://{}", path.display());
+    let playbin = gst::ElementFactory::make("playbin")
+        .property("uri", &uri)
+        .build()
+        .ok()?;
+    let playbin_clone = playbin.clone();
+    playbin.connect("about-to-finish", false, move |_| {
+        playbin_clone.seek_simple(
+            gst::SeekFlags::FLUSH | gst::SeekFlags::KEY_UNIT,
+            gst::ClockTime::ZERO,
+        ).ok();
+        None
+    });
+    let _ = playbin.set_state(gst::State::Playing);
+    Some(playbin)
+}
+
+#[cfg(target_os = "linux")]
+fn stop_purr(playbin: &gst::Element) {
+    let _ = playbin.set_state(gst::State::Null);
+}
+
+#[cfg(target_os = "windows")]
 fn play_sound(handle: &OutputStreamHandle, path: &Path) {
     if let Ok(file) = fs::File::open(path) {
         if let Ok(decoder) = Decoder::new(BufReader::new(file)) {
@@ -82,34 +142,18 @@ fn play_sound(handle: &OutputStreamHandle, path: &Path) {
     }
 }
 
-fn try_open_output_stream() -> Option<(OutputStream, OutputStreamHandle)> {
-    if let Ok(result) = OutputStream::try_default() {
-        return Some(result);
-    }
-    for host_id in cpal::available_hosts() {
-        if let Ok(host) = cpal::host_from_id(host_id) {
-            if let Ok(mut devices) = host.output_devices() {
-                if let Some(device) = devices.next() {
-                    if let Ok(result) = OutputStream::try_from_device(&device) {
-                        return Some(result);
-                    }
-                }
-            }
-        }
-    }
-    None
-}
-
 fn build_ui(app: &AppType) {
     let assets = resolve_assets();
     let config = load_config();
     let meows = Rc::new(Cell::new(config.meows));
 
-    let (stream, stream_handle) = try_open_output_stream().expect("audio output");
-    Box::leak(Box::new(stream)); // must outlive all sinks
+    #[cfg(target_os = "windows")]
+    let (stream, stream_handle) = OutputStream::try_default().expect("audio output");
+    #[cfg(target_os = "windows")]
+    Box::leak(Box::new(stream));
+    #[cfg(target_os = "windows")]
     let stream_handle = Arc::new(stream_handle);
-
-    // purr sink — kept alive for dialog duration
+    #[cfg(target_os = "windows")]
     let purr_sink: Arc<Mutex<Option<Sink>>> = Arc::new(Mutex::new(None));
 
     let window = ApplicationWindow::builder()
@@ -119,7 +163,6 @@ fn build_ui(app: &AppType) {
         .default_height(300)
         .build();
 
-    // icons
     let icon1 = assets.join("static.png");
     let icon2 = assets.join("static2.png");
 
@@ -143,7 +186,6 @@ fn build_ui(app: &AppType) {
     vbox.append(&button);
     vbox.append(&meow_label);
 
-    // header bar with About menu
     let header = HeaderBar::new();
     let menu_button = MenuButton::new();
     menu_button.set_icon_name("open-menu-symbolic");
@@ -160,31 +202,56 @@ fn build_ui(app: &AppType) {
     // purr action
     {
         let assets = assets.clone();
-        let stream_handle = Arc::clone(&stream_handle);
-        let purr_sink = Arc::clone(&purr_sink);
         let window_weak = window.downgrade();
         let purr_action = gio::SimpleAction::new("purr", None);
+
+        #[cfg(target_os = "windows")]
+        let stream_handle = Arc::clone(&stream_handle);
+        #[cfg(target_os = "windows")]
+        let purr_sink = Arc::clone(&purr_sink);
+
         purr_action.connect_activate(move |_, _| {
             let path = assets.join("purr.mp3");
-            if let Ok(file) = fs::File::open(&path) {
-                if let Ok(decoder) = Decoder::new(BufReader::new(file)) {
-                    if let Ok(sink) = Sink::try_new(&stream_handle) {
-                        sink.append(decoder);
-                        *purr_sink.lock().unwrap() = Some(sink);
+
+            #[cfg(target_os = "linux")]
+            let purr = play_purr(&path);
+
+            #[cfg(target_os = "windows")]
+            {
+                if let Ok(file) = fs::File::open(&path) {
+                    if let Ok(decoder) = Decoder::new(BufReader::new(file)) {
+                        if let Ok(sink) = Sink::try_new(&stream_handle) {
+                            sink.append(decoder);
+                            *purr_sink.lock().unwrap() = Some(sink);
+                        }
                     }
                 }
             }
+
             if let Some(win) = window_weak.upgrade() {
                 let dialog = gtk4::AlertDialog::builder()
                     .message("UwU")
                     .detail("*purrs*")
                     .build();
+
+                #[cfg(target_os = "windows")]
                 let purr_sink = Arc::clone(&purr_sink);
+
                 dialog.choose(Some(&win), None::<&gio::Cancellable>, move |_| {
+                    #[cfg(target_os = "linux")]
+                    if let Some(p) = purr {
+                        stop_purr(&p);
+                    }
+                    #[cfg(target_os = "windows")]
                     if let Some(sink) = purr_sink.lock().unwrap().take() {
                         sink.stop();
                     }
                 });
+            } else {
+                #[cfg(target_os = "linux")]
+                if let Some(p) = purr {
+                    stop_purr(&p);
+                }
             }
         });
         app.add_action(&purr_action);
@@ -193,12 +260,14 @@ fn build_ui(app: &AppType) {
     // meow button
     {
         let assets = assets.clone();
-        let stream_handle = Arc::clone(&stream_handle);
         let image = image.clone();
         let icon1 = icon1.clone();
         let icon2 = icon2.clone();
         let meows = Rc::clone(&meows);
         let meow_label = meow_label.clone();
+
+        #[cfg(target_os = "windows")]
+        let stream_handle = Arc::clone(&stream_handle);
 
         button.connect_clicked(move |_| {
             let count = meows.get() + 1;
@@ -207,6 +276,10 @@ fn build_ui(app: &AppType) {
             meow_label.set_text(&format!("Meows: {count}"));
 
             let n = rand::thread_rng().gen_range(1..=4);
+
+            #[cfg(target_os = "linux")]
+            play_sound(&assets.join(format!("meow{n}.mp3")));
+            #[cfg(target_os = "windows")]
             play_sound(&stream_handle, &assets.join(format!("meow{n}.mp3")));
 
             image.set_from_file(Some(&icon2));
@@ -222,6 +295,9 @@ fn build_ui(app: &AppType) {
 }
 
 fn main() {
+    #[cfg(target_os = "linux")]
+    gst::init().expect("GStreamer init failed");
+
     glib::set_application_name("Meow Simulator");
     #[cfg(target_os = "linux")]
     let app = adw::Application::builder().application_id(APP_ID).build();

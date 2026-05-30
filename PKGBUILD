@@ -1,9 +1,9 @@
 pkgname=meow-simulator
-pkgver=1.0.2
+pkgver=1.0.3
 pkgrel=1
 pkgdesc="A boykisser on your computer"
 arch=('x86_64')
-depends=('gtk4' 'libadwaita')
+depends=('gtk4' 'libadwaita' 'gstreamer')
 options=('!strip')
 source=()
 sha256sums=()

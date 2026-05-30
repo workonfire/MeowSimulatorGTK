@@ -1,19 +1,23 @@
 [package]
 name = "MeowSimulatorRust"
-version = "0.1.0"
+version = "1.0.3"
 edition = "2024"
 
 [dependencies]
 gtk4 = { version = "0.9", features = ["v4_10"] }
-rodio = { version = "0.20", features = ["mp3"] }
 serde = { version = "1", features = ["derive"] }
 toml = "0.8"
 dirs = "5"
 rand = "0.8"
-cpal = "0.15"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 libadwaita = { version = "0.7", features = ["v1_6"] }
+gstreamer = "0.23"
+futures-util = "0.3"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+rodio = { version = "0.20", features = ["mp3"] }
+cpal = "0.15"
 
 [target.'cfg(target_os = "windows")'.build-dependencies]
 image = { version = "0.25", default-features = false, features = ["png"] }
