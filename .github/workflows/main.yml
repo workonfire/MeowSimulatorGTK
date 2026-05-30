@@ -3,9 +3,9 @@ name: Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ rdza ]
   pull_request:
-    branches: [ main ]
+    branches: [ rdza ]
   workflow_dispatch:
 
 jobs:
