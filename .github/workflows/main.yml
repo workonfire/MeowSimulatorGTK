@@ -1,0 +1,96 @@
+# .github/workflows/build.yml
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+
+  linux:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm \
+            gtk4 \
+            libadwaita \
+            alsa-lib \
+            pkgconf \
+            rust \
+            make \
+            base-devel \
+            tar
+
+      - name: Cache Cargo
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: linux-cargo-${{ hashFiles('Cargo.lock') }}
+
+      - name: Package
+        run: make package-linux
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: meow-simulator-linux
+          path: dist/meow-simulator-linux.tar.gz
+          compression-level: 0
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          release: true
+          install: >-
+            mingw-w64-ucrt-x86_64-rust
+            mingw-w64-ucrt-x86_64-gtk4
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-vulkan-loader
+            make
+            zip
+        env:
+          MSYS2_PATH_TYPE: inherit
+
+      - name: Cache Cargo
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: windows-cargo-${{ hashFiles('Cargo.lock') }}
+
+      - name: Package
+        run: make package-windows
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: meow-simulator-windows
+          path: dist/windows/
