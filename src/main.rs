@@ -54,9 +54,12 @@ fn save_config(config: &Config) {
 }
 
 fn resolve_assets() -> PathBuf {
-    let system = Path::new("/usr/share/meow-simulator");
-    if system.is_dir() {
-        return system.to_path_buf();
+    #[cfg(target_os = "linux")]
+    {
+        let system = Path::new("/usr/share/meow-simulator");
+        if system.is_dir() {
+            return system.to_path_buf();
+        }
     }
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
@@ -221,11 +224,39 @@ fn build_ui(app: &AppType) {
     window.present();
 }
 
+#[cfg(target_os = "windows")]
+fn setup_windows_env(exe_dir: &Path) {
+    // safe: called before gst::init() and GTK init, still single-threaded
+    unsafe {
+        std::env::set_var("GST_PLUGIN_PATH", exe_dir.join("lib/gstreamer-1.0"));
+        std::env::set_var("GST_PLUGIN_SCANNER", exe_dir.join("gst-plugin-scanner.exe"));
+    }
+
+    let loaders_dir = exe_dir.join("lib/gdk-pixbuf-2.0/2.10.0/loaders");
+    let cache = exe_dir.join("lib/gdk-pixbuf-2.0/2.10.0/loaders.cache");
+    let query_tool = exe_dir.join("gdk-pixbuf-query-loaders.exe");
+
+    if query_tool.exists() {
+        if let Ok(entries) = fs::read_dir(&loaders_dir) {
+            let dlls: Vec<_> = entries
+                .filter_map(|e| e.ok())
+                .map(|e| e.path())
+                .filter(|p| p.extension().map_or(false, |e| e == "dll"))
+                .collect();
+            if let Ok(out) = std::process::Command::new(&query_tool).args(&dlls).output() {
+                let _ = fs::write(&cache, &out.stdout);
+            }
+        }
+    }
+
+    unsafe { std::env::set_var("GDK_PIXBUF_MODULE_FILE", &cache); }
+}
+
 fn main() {
     #[cfg(target_os = "windows")]
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
-            std::env::set_var("GST_PLUGIN_PATH", dir.join("lib/gstreamer-1.0"));
+            setup_windows_env(dir);
         }
     }
 
