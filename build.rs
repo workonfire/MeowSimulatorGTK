@@ -12,11 +12,10 @@ fn main() {
 
     for entry in fs::read_dir("assets").unwrap() {
         let entry = entry.unwrap();
+        println!("cargo:rerun-if-changed={}", entry.path().display());
         let dest_file = dest.join(entry.file_name());
         fs::copy(entry.path(), dest_file).unwrap();
     }
-
-    println!("cargo:rerun-if-changed=assets");
 
     #[cfg(target_os = "windows")]
     {

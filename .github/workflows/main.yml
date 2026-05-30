@@ -15,13 +15,15 @@ jobs:
     container:
       image: archlinux:latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install dependencies
         run: |
-          pacman -Syu --noconfirm \
+          pacman -Syu --noconfirm --needed \
             gtk4 \
             libadwaita \
+            gstreamer \
+            gst-plugins-base \
             alsa-lib \
             pkgconf \
             rust \
@@ -42,7 +44,7 @@ jobs:
         run: make package-linux
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: meow-simulator-linux
           path: dist/meow-simulator-linux.tar.gz
@@ -51,14 +53,11 @@ jobs:
   windows:
     runs-on: windows-latest
     timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      max-parallel: 1
     defaults:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Set up MSYS2
         uses: msys2/setup-msys2@v2
@@ -72,6 +71,11 @@ jobs:
             mingw-w64-ucrt-x86_64-pkgconf
             mingw-w64-ucrt-x86_64-gcc
             mingw-w64-ucrt-x86_64-vulkan-loader
+            mingw-w64-ucrt-x86_64-gstreamer
+            mingw-w64-ucrt-x86_64-gst-plugins-base
+            mingw-w64-ucrt-x86_64-gst-plugins-good
+            mingw-w64-ucrt-x86_64-gst-plugins-bad
+            mingw-w64-ucrt-x86_64-gst-plugins-ugly
             make
             zip
         env:
@@ -90,7 +94,8 @@ jobs:
         run: make package-windows
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: meow-simulator-windows
-          path: dist/windows/
+          path: dist/meow-simulator-windows.zip
+          compression-level: 0

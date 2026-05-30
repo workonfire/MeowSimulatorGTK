@@ -9,7 +9,7 @@ TARBALL   := dist/meow-simulator-linux.tar.gz
 
 OS := $(shell uname -s)
 
-.PHONY: all package package-windows package-linux pkgbuild install uninstall build check-rust check-ucrt64 clean
+.PHONY: all package package-windows package-linux stage-linux pkgbuild install uninstall build check-rust check-ucrt64 clean
 
 all: package
 
@@ -27,15 +27,19 @@ endif
 check-rust:
 	@command -v rustc >/dev/null 2>&1 \
 	  || { echo "error: rustc not found — install Rust from https://rustup.rs or: pacman -S mingw-w64-ucrt-x86_64-rust"; exit 1; }
-	@rustc -vV 2>/dev/null | grep -q 'host:.*-gnu' \
-	  || { echo "error: Rust GNU toolchain required — current host: $$(rustc -vV | grep host)"; \
+	@RUSTC_VV=$$(rustc -vV 2>/dev/null); \
+	echo "$$RUSTC_VV" | grep -q 'host:.*-gnu' \
+	  || { echo "error: Rust GNU toolchain required — current host: $$(echo "$$RUSTC_VV" | grep host)"; \
 	       echo "       install with: pacman -S mingw-w64-ucrt-x86_64-rust"; exit 1; }
 
 check-ucrt64: check-rust
 	@test -d /ucrt64 \
 	  || { echo "error: /ucrt64 not found — install the MSYS2 UCRT64 toolchain"; exit 1; }
 	@for pkg in mingw-w64-ucrt-x86_64-gtk4 mingw-w64-ucrt-x86_64-pkgconf \
-	            mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-vulkan-loader; do \
+	            mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-vulkan-loader \
+	            mingw-w64-ucrt-x86_64-gstreamer mingw-w64-ucrt-x86_64-gst-plugins-base \
+	            mingw-w64-ucrt-x86_64-gst-plugins-good mingw-w64-ucrt-x86_64-gst-plugins-bad \
+	            mingw-w64-ucrt-x86_64-gst-plugins-ugly; do \
 	  pacman -Q $$pkg >/dev/null 2>&1 \
 	    || { echo "error: $$pkg not installed — run: pacman -S $$pkg"; exit 1; }; \
 	done
@@ -57,22 +61,24 @@ $(ZIP): check-ucrt64 build
 	cp -r /ucrt64/share/icons $(DIST_WIN)/share/
 	glib-compile-schemas $(DIST_WIN)/share/glib-2.0/schemas/
 	cp -r $(RELEASE)/assets $(DIST_WIN)/
+	mkdir -p $(DIST_WIN)/lib/gstreamer-1.0
+	cp /ucrt64/lib/gstreamer-1.0/*.dll $(DIST_WIN)/lib/gstreamer-1.0/
 	cd dist && zip -r meow-simulator-windows.zip windows/
 
 # ── Linux ─────────────────────────────────────────────────────────────────────
 
 package-linux: $(TARBALL)
 
-$(TARBALL): build
+stage-linux: build
 	rm -rf $(DIST_LIN)
-	mkdir -p $(DIST_LIN)/usr/bin
-	mkdir -p $(DIST_LIN)/usr/share/meow-simulator
-	mkdir -p $(DIST_LIN)/usr/share/icons/hicolor/256x256/apps
-	mkdir -p $(DIST_LIN)/usr/share/applications
+	mkdir -p $(DIST_LIN)/usr/bin $(DIST_LIN)/usr/share/meow-simulator \
+	         $(DIST_LIN)/usr/share/icons/hicolor/256x256/apps $(DIST_LIN)/usr/share/applications
 	cp $(RELEASE)/$(BINARY) $(DIST_LIN)/usr/bin/meow-simulator
 	cp -r $(RELEASE)/assets/. $(DIST_LIN)/usr/share/meow-simulator/
 	cp $(RELEASE)/assets/static.png $(DIST_LIN)/usr/share/icons/hicolor/256x256/apps/meow-simulator.png
 	cp com.wzium.MeowSimulator.desktop $(DIST_LIN)/usr/share/applications/
+
+$(TARBALL): stage-linux
 	tar -czf $(TARBALL) -C dist linux/
 
 pkgbuild: package-linux
@@ -80,7 +86,7 @@ pkgbuild: package-linux
 
 # ── Install ───────────────────────────────────────────────────────────────────
 
-install: package-linux
+install: stage-linux
 	cp -r $(DIST_LIN)/. $(DESTDIR)/
 
 uninstall:
