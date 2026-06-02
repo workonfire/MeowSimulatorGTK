@@ -316,11 +316,13 @@ mod windows {
                 btn.set_sensitive(false);
                 prev_btn.set_sensitive(false);
 
-                let (tx, rx) = glib::MainContext::channel::<std::io::Result<()>>(glib::Priority::DEFAULT);
+                let result: std::sync::Arc<std::sync::Mutex<Option<std::io::Result<()>>>> =
+                    std::sync::Arc::new(std::sync::Mutex::new(None));
+                let result_thread = std::sync::Arc::clone(&result);
                 let src = src.clone();
 
                 std::thread::spawn(move || {
-                    let _ = tx.send(do_install(&src, &dest, desktop, startmenu));
+                    *result_thread.lock().unwrap() = Some(do_install(&src, &dest, desktop, startmenu));
                 });
 
                 let stack = stack.clone();
@@ -328,26 +330,29 @@ mod windows {
                 let prev_btn = prev_btn.clone();
                 let window_weak = window_weak.clone();
 
-                rx.attach(None, move |result| {
-                    match result {
-                        Ok(()) => {
-                            stack.set_transition_type(StackTransitionType::SlideLeft);
-                            stack.set_visible_child_name("complete");
-                        }
-                        Err(e) => {
-                            btn.set_label("Install");
-                            btn.set_sensitive(true);
-                            prev_btn.set_sensitive(true);
-                            if let Some(win) = window_weak.upgrade() {
-                                AlertDialog::builder()
-                                    .message("Installation failed")
-                                    .detail(&e.to_string())
-                                    .build()
-                                    .show(Some(&win));
+                glib::idle_add_local(move || {
+                    if let Some(res) = result.lock().unwrap().take() {
+                        match res {
+                            Ok(()) => {
+                                stack.set_transition_type(StackTransitionType::SlideLeft);
+                                stack.set_visible_child_name("complete");
+                            }
+                            Err(e) => {
+                                btn.set_label("Install");
+                                btn.set_sensitive(true);
+                                prev_btn.set_sensitive(true);
+                                if let Some(win) = window_weak.upgrade() {
+                                    AlertDialog::builder()
+                                        .message("Installation failed")
+                                        .detail(&e.to_string())
+                                        .build()
+                                        .show(Some(&win));
+                                }
                             }
                         }
+                        return glib::ControlFlow::Break;
                     }
-                    glib::ControlFlow::Break
+                    glib::ControlFlow::Continue
                 });
             });
         }
