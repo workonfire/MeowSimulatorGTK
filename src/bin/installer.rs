@@ -63,11 +63,18 @@ mod windows {
             .status();
     }
 
+    const REG_KEY: &str =
+        "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\MeowSimulator";
+
+    fn existing_install() -> Option<PathBuf> {
+        let key = RegKey::predef(HKEY_CURRENT_USER).open_subkey(REG_KEY).ok()?;
+        let loc: String = key.get_value("InstallLocation").ok()?;
+        Some(PathBuf::from(loc))
+    }
+
     fn write_registry(dest: &Path) {
         let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-        if let Ok((key, _)) = hkcu.create_subkey(
-            "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\MeowSimulator",
-        ) {
+        if let Ok((key, _)) = hkcu.create_subkey(REG_KEY) {
             let _ = key.set_value("DisplayName", &"Meow Simulator");
             let _ = key.set_value("Publisher", &"wzium");
             let _ = key.set_value("InstallLocation", &dest.to_string_lossy().as_ref());
@@ -77,11 +84,28 @@ mod windows {
             );
             let _ = key.set_value(
                 "UninstallString",
-                &dest.join("uninstaller.exe").to_string_lossy().as_ref(),
+                &dest.join("installer.exe").to_string_lossy().as_ref(),
             );
             let _ = key.set_value("NoModify", &1u32);
             let _ = key.set_value("NoRepair", &1u32);
         }
+    }
+
+    fn do_uninstall(install_dir: &Path) {
+        if let Some(d) = dirs::desktop_dir() {
+            let _ = std::fs::remove_file(d.join("Meow Simulator.lnk"));
+        }
+        if let Some(data) = dirs::data_dir() {
+            let _ = std::fs::remove_file(
+                data.join("Microsoft\\Windows\\Start Menu\\Programs\\Meow Simulator.lnk"),
+            );
+        }
+        let _ = RegKey::predef(HKEY_CURRENT_USER).delete_subkey_all(REG_KEY);
+        let dir = install_dir.to_string_lossy().replace('"', "\"\"");
+        let _ = std::process::Command::new("cmd")
+            .args(["/c", &format!("timeout /t 2 >nul & rmdir /s /q \"{dir}\"")])
+            .creation_flags(CREATE_NO_WINDOW)
+            .spawn();
     }
 
     fn do_install(src: &Path, dest: &Path, desktop: bool, startmenu: bool) -> std::io::Result<()> {
@@ -109,6 +133,8 @@ mod windows {
             .parent()
             .unwrap()
             .to_path_buf();
+
+        let existing = existing_install();
 
         let window = ApplicationWindow::builder()
             .application(app)
@@ -232,7 +258,7 @@ mod windows {
         cc.set_valign(gtk4::Align::Center);
         cc.set_halign(gtk4::Align::Center);
 
-        let check_icon = Image::from_icon_name("process-completed-symbolic");
+        let check_icon = Image::from_file(src.join("assets").join("static2.png"));
         check_icon.set_pixel_size(96);
         cc.append(&check_icon);
 
@@ -259,7 +285,52 @@ mod windows {
 
         stack.add_named(&complete, Some("complete"));
 
+        // ── Uninstall page ────────────────────────────────────────────────────
+        let uninstall_page = GtkBox::new(Orientation::Vertical, 0);
+        uninstall_page.set_margin_top(30);
+        uninstall_page.set_margin_bottom(30);
+        uninstall_page.set_margin_start(30);
+        uninstall_page.set_margin_end(30);
+
+        let uc = GtkBox::new(Orientation::Vertical, 12);
+        uc.set_vexpand(true);
+        uc.set_valign(gtk4::Align::Center);
+        uc.set_halign(gtk4::Align::Center);
+
+        let already_label = Label::new(Some("Meow Simulator is already installed"));
+        already_label.add_css_class("title-2");
+        uc.append(&already_label);
+
+        let install_path_label = Label::new(
+            existing.as_deref().and_then(|p| p.to_str()),
+        );
+        install_path_label.add_css_class("dim-label");
+        uc.append(&install_path_label);
+
+        uninstall_page.append(&uc);
+
+        let ub = GtkBox::new(Orientation::Horizontal, 0);
+        let us1 = Label::new(None);
+        us1.set_hexpand(true);
+        let uninstall_btn = Button::builder()
+            .label("Uninstall")
+            .css_classes(["destructive-action", "pill"])
+            .width_request(120)
+            .build();
+        let us2 = Label::new(None);
+        us2.set_hexpand(true);
+        ub.append(&us1);
+        ub.append(&uninstall_btn);
+        ub.append(&us2);
+        uninstall_page.append(&ub);
+
+        stack.add_named(&uninstall_page, Some("uninstall"));
+
         window.set_child(Some(&stack));
+
+        if existing.is_some() {
+            stack.set_visible_child_name("uninstall");
+        }
 
         // ── Next: welcome → options ───────────────────────────────────────────
         {
@@ -354,6 +425,27 @@ mod windows {
                     }
                     glib::ControlFlow::Continue
                 });
+            });
+        }
+
+        // ── Uninstall ─────────────────────────────────────────────────────────
+        if let Some(install_path) = existing {
+            let window_weak = window.downgrade();
+            uninstall_btn.connect_clicked(move |btn| {
+                btn.set_label("Uninstalling...");
+                btn.set_sensitive(false);
+                do_uninstall(&install_path);
+                if let Some(win) = window_weak.upgrade() {
+                    let win_weak = win.downgrade();
+                    AlertDialog::builder()
+                        .message("Meow Simulator has been uninstalled.")
+                        .build()
+                        .choose(Some(&win), None::<&gio::Cancellable>, move |_| {
+                            if let Some(w) = win_weak.upgrade() {
+                                w.close();
+                            }
+                        });
+                }
             });
         }
 

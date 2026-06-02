@@ -54,7 +54,6 @@ $(ZIP): check-ucrt64 build
 	mkdir -p $(DIST_WIN)/share/glib-2.0
 	cp $(RELEASE)/$(BINARY).exe $(DIST_WIN)/
 	cp $(RELEASE)/installer.exe $(DIST_WIN)/
-	cp $(RELEASE)/uninstaller.exe $(DIST_WIN)/
 	ldd $(RELEASE)/$(BINARY).exe \
 	  | grep -i ucrt64 \
 	  | awk '{print $$3}' \
