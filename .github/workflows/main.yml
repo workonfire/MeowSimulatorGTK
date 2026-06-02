@@ -93,8 +93,16 @@ jobs:
       - name: Package
         run: make package-windows
 
-      - name: Upload artifact
+      - name: Upload portable zip
         uses: actions/upload-artifact@v7
         with:
-          name: meow-simulator-windows
-          path: dist/windows/
+          name: meow-simulator-windows-portable
+          path: dist/meow-simulator-windows.zip
+          compression-level: 0
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: meow-simulator-windows-installer
+          path: dist/meow-simulator-setup.exe
+          compression-level: 0

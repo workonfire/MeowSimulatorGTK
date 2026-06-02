@@ -5,6 +5,7 @@ DESTDIR ?=
 DIST_WIN  := dist/windows
 DIST_LIN  := dist/linux
 ZIP       := dist/meow-simulator-windows.zip
+SETUP_EXE := dist/meow-simulator-setup.exe
 TARBALL   := dist/meow-simulator-linux.tar.gz
 
 OS := $(shell uname -s)
@@ -46,12 +47,13 @@ check-ucrt64: check-rust
 	@command -v zip >/dev/null 2>&1 \
 	  || { echo "error: zip not found — run: pacman -S zip"; exit 1; }
 
-package-windows: $(ZIP)
+package-windows: $(ZIP) $(SETUP_EXE)
 
 $(ZIP): check-ucrt64 build
 	rm -rf $(DIST_WIN)
 	mkdir -p $(DIST_WIN)/share/glib-2.0
 	cp $(RELEASE)/$(BINARY).exe $(DIST_WIN)/
+	cp $(RELEASE)/installer.exe $(DIST_WIN)/
 	ldd $(RELEASE)/$(BINARY).exe \
 	  | grep -i ucrt64 \
 	  | awk '{print $$3}' \
@@ -78,6 +80,10 @@ $(ZIP): check-ucrt64 build
 	ldd /ucrt64/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-png.dll 2>/dev/null \
 	  | grep -i ucrt64 | awk '{print $$3}' | xargs -I{} cp -n {} $(DIST_WIN)/
 	cd dist && zip -r meow-simulator-windows.zip windows/
+
+$(SETUP_EXE): $(ZIP)
+	BUNDLE_ZIP=$$(cd dist && pwd)/meow-simulator-windows.zip cargo build --release --bin setup
+	cp $(RELEASE)/setup.exe $(SETUP_EXE)
 
 # ── Linux ─────────────────────────────────────────────────────────────────────
 
