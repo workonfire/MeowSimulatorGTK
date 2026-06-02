@@ -3,9 +3,9 @@ name: Build
 
 on:
   push:
-    branches: [ rdza ]
+    branches: [ rdza-installer ]
   pull_request:
-    branches: [ rdza ]
+    branches: [ rdza-installer ]
   workflow_dispatch:
 
 jobs:
