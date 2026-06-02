@@ -20,18 +20,18 @@ fn main() {
         fs::copy(&path, dest.join(entry.file_name())).unwrap();
     }
 
-    // bundle.zip for setup.rs's include_bytes! — real zip injected by Makefile via BUNDLE_ZIP
-    println!("cargo:rerun-if-env-changed=BUNDLE_ZIP");
-    let bundle_dest = Path::new(&out).join("bundle.zip");
-    if let Ok(bundle_zip) = std::env::var("BUNDLE_ZIP") {
-        fs::copy(&bundle_zip, &bundle_dest).unwrap();
-    } else if !bundle_dest.exists() {
-        // minimal valid empty ZIP so include_bytes! compiles on non-setup builds
-        fs::write(&bundle_dest, b"PK\x05\x06\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00").unwrap();
-    }
-
     #[cfg(target_os = "windows")]
     {
+        // bundle.zip for setup.rs's include_bytes! — real zip injected by Makefile via BUNDLE_ZIP
+        println!("cargo:rerun-if-env-changed=BUNDLE_ZIP");
+        let bundle_dest = Path::new(&out).join("bundle.zip");
+        if let Ok(bundle_zip) = std::env::var("BUNDLE_ZIP") {
+            fs::copy(&bundle_zip, &bundle_dest).unwrap();
+        } else if !bundle_dest.exists() {
+            // minimal valid empty ZIP placeholder for non-setup builds
+            fs::write(&bundle_dest, b"PK\x05\x06\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00").unwrap();
+        }
+
         let ico_path = Path::new(&out).join("app.ico");
         let img = image::open("assets/static.png").expect("failed to open icon");
         let resized = img.resize(256, 256, image::imageops::FilterType::Lanczos3);

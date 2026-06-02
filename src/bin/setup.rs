@@ -1,12 +1,17 @@
 #![cfg_attr(windows, windows_subsystem = "windows")]
 
-static BUNDLE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/bundle.zip"));
-
 fn main() {
     #[cfg(windows)]
-    {
-        use std::io::Cursor;
+    windows::run();
+}
 
+#[cfg(windows)]
+mod windows {
+    use std::io::Cursor;
+
+    static BUNDLE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/bundle.zip"));
+
+    pub fn run() {
         let tmp = std::env::temp_dir().join(format!("meow-setup-{}", std::process::id()));
         std::fs::create_dir_all(&tmp).unwrap();
 
