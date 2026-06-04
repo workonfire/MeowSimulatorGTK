@@ -91,7 +91,94 @@ mod windows {
         }
     }
 
-    fn do_uninstall(install_dir: &Path) {
+    fn tracked_paths(install_dir: &Path) -> Vec<PathBuf> {
+        let mut paths = Vec::new();
+
+        fn scan_dir(dir: &Path, out: &mut Vec<PathBuf>) {
+            let Ok(entries) = std::fs::read_dir(dir) else { return };
+            for e in entries.flatten() {
+                let p = e.path();
+                if p.is_dir() { scan_dir(&p, out); }
+                else { out.push(p); }
+            }
+        }
+        if install_dir.exists() { scan_dir(install_dir, &mut paths); }
+
+        if let Some(d) = dirs::desktop_dir() {
+            let p = d.join("Meow Simulator.lnk");
+            if p.exists() { paths.push(p); }
+        }
+        if let Some(d) = dirs::data_dir() {
+            let p = d.join("Microsoft\\Windows\\Start Menu\\Programs\\Meow Simulator.lnk");
+            if p.exists() { paths.push(p); }
+        }
+        paths
+    }
+
+    fn locked_by_other_process(install_dir: &Path) -> bool {
+        use std::os::windows::ffi::OsStrExt;
+        use windows::Win32::System::RestartManager::*;
+        use windows::core::{PCWSTR, PWSTR};
+
+        if !install_dir.exists() { return false; }
+
+        let all_files: Vec<Vec<u16>> = tracked_paths(install_dir)
+            .iter()
+            .map(|p| {
+                let mut w: Vec<u16> = p.as_os_str().encode_wide().collect();
+                w.push(0);
+                w
+            })
+            .collect();
+        if all_files.is_empty() { return false; }
+
+        let own_pid = std::process::id();
+
+        (|| -> windows::core::Result<bool> {
+            let mut session = 0u32;
+            let mut key = [0u16; 33];
+            unsafe { RmStartSession(&mut session, 0, PWSTR(key.as_mut_ptr()))? };
+
+            struct RmSession(u32);
+            impl Drop for RmSession {
+                fn drop(&mut self) { unsafe { let _ = RmEndSession(self.0); } }
+            }
+            let _guard = RmSession(session);
+
+            let ptrs: Vec<PCWSTR> = all_files.iter().map(|f| PCWSTR(f.as_ptr())).collect();
+            unsafe { RmRegisterResources(session, Some(&ptrs), None, None)? };
+
+            let mut needed = 0u32;
+            let mut actual = 0u32;
+            let mut reboot = 0u32;
+            let _ = unsafe { RmGetList(session, &mut needed, &mut actual, None, &mut reboot) };
+            if needed == 0 { return Ok(false); }
+
+            let mut infos = vec![RM_PROCESS_INFO::default(); needed as usize];
+            actual = needed;
+            unsafe { RmGetList(session, &mut needed, &mut actual, Some(infos.as_mut_ptr()), &mut reboot)? };
+
+            Ok(infos[..actual as usize].iter().any(|p| p.Process.dwProcessId != own_pid))
+        })().unwrap_or(false)
+    }
+
+    fn temp_installer_dir() -> PathBuf {
+        std::env::temp_dir().join("MeowSimulator-Installer")
+    }
+
+
+    fn show_native_error(msg: &str) {
+        use std::ffi::OsStr;
+        use std::os::windows::ffi::OsStrExt;
+        use windows::Win32::Foundation::HWND;
+        use windows::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_ICONERROR, MB_OK};
+        use windows::core::PCWSTR;
+        let title: Vec<u16> = OsStr::new("Meow Simulator").encode_wide().chain(std::iter::once(0)).collect();
+        let text: Vec<u16> = OsStr::new(msg).encode_wide().chain(std::iter::once(0)).collect();
+        unsafe { let _ = MessageBoxW(HWND(0), PCWSTR(text.as_ptr()), PCWSTR(title.as_ptr()), MB_OK | MB_ICONERROR); }
+    }
+
+    fn do_uninstall(install_dir: &Path) -> std::io::Result<()> {
         if let Some(d) = dirs::desktop_dir() {
             let _ = std::fs::remove_file(d.join("Meow Simulator.lnk"));
         }
@@ -101,11 +188,7 @@ mod windows {
             );
         }
         let _ = RegKey::predef(HKEY_CURRENT_USER).delete_subkey_all(REG_KEY);
-        let dir = install_dir.to_string_lossy().replace('"', "\"\"");
-        let _ = std::process::Command::new("cmd")
-            .args(["/c", &format!("timeout /t 2 >nul & rmdir /s /q \"{dir}\"")])
-            .creation_flags(CREATE_NO_WINDOW)
-            .spawn();
+        std::fs::remove_dir_all(install_dir)
     }
 
     fn do_install(src: &Path, dest: &Path, desktop: bool, startmenu: bool) -> std::io::Result<()> {
@@ -128,17 +211,13 @@ mod windows {
     }
 
     fn build_ui(app: &adw::Application) {
-        let src = std::env::current_exe()
-            .unwrap()
-            .parent()
-            .unwrap()
-            .to_path_buf();
+        let src = std::env::current_exe().unwrap().parent().unwrap().to_path_buf();
 
         let existing = existing_install();
 
         let window = ApplicationWindow::builder()
             .application(app)
-            .title("Meow Simulator — Installer")
+            .title("Meow Simulator Installer")
             .default_width(520)
             .default_height(400)
             .resizable(false)
@@ -432,20 +511,78 @@ mod windows {
         if let Some(install_path) = existing {
             let window_weak = window.downgrade();
             uninstall_btn.connect_clicked(move |btn| {
+                if locked_by_other_process(&install_path) {
+                    if let Some(win) = window_weak.upgrade() {
+                        AlertDialog::builder()
+                            .message("Meow Simulator is still running")
+                            .detail("Please close Meow Simulator before uninstalling.")
+                            .build()
+                            .show(Some(&win));
+                    }
+                    return;
+                }
                 btn.set_label("Uninstalling...");
                 btn.set_sensitive(false);
-                do_uninstall(&install_path);
-                if let Some(win) = window_weak.upgrade() {
-                    let win_weak = win.downgrade();
-                    AlertDialog::builder()
-                        .message("Meow Simulator has been uninstalled.")
-                        .build()
-                        .choose(Some(&win), None::<&gio::Cancellable>, move |_| {
-                            if let Some(w) = win_weak.upgrade() {
-                                w.close();
+
+                let result: std::sync::Arc<std::sync::Mutex<Option<std::io::Result<()>>>> =
+                    std::sync::Arc::new(std::sync::Mutex::new(None));
+                let result_thread = std::sync::Arc::clone(&result);
+                let path = install_path.clone();
+                std::thread::spawn(move || {
+                    *result_thread.lock().unwrap() = Some(do_uninstall(&path));
+                });
+
+                let btn = btn.clone();
+                let window_weak = window_weak.clone();
+                glib::idle_add_local(move || {
+                    let mut guard = result.lock().unwrap();
+                    if let Some(res) = guard.take() {
+                        drop(guard);
+                        match res {
+                            Ok(()) => {
+                                // Schedule temp dir self-cleanup after this process exits
+                                if let Ok(exe) = std::env::current_exe() {
+                                    if exe.starts_with(std::env::temp_dir()) {
+                                        if let Some(tmp) = exe.parent() {
+                                            let pid = std::process::id();
+                                            let t = tmp.to_string_lossy().replace('\'', "''");
+                                            let script = format!(
+                                                "Wait-Process -Id {pid} -ErrorAction SilentlyContinue; \
+                                                 Remove-Item -Recurse -Force '{t}'"
+                                            );
+                                            let _ = std::process::Command::new("powershell")
+                                                .args(["-NoProfile", "-NonInteractive", "-Command", &script])
+                                                .creation_flags(CREATE_NO_WINDOW)
+                                                .spawn();
+                                        }
+                                    }
+                                }
+                                if let Some(win) = window_weak.upgrade() {
+                                    let win_weak = win.downgrade();
+                                    AlertDialog::builder()
+                                        .message("Meow Simulator has been uninstalled.")
+                                        .build()
+                                        .choose(Some(&win), None::<&gio::Cancellable>, move |_| {
+                                            if let Some(w) = win_weak.upgrade() { w.close(); }
+                                        });
+                                }
                             }
-                        });
-                }
+                            Err(e) => {
+                                btn.set_label("Uninstall");
+                                btn.set_sensitive(true);
+                                if let Some(win) = window_weak.upgrade() {
+                                    AlertDialog::builder()
+                                        .message("Uninstallation failed")
+                                        .detail(&e.to_string())
+                                        .build()
+                                        .show(Some(&win));
+                                }
+                            }
+                        }
+                        return glib::ControlFlow::Break;
+                    }
+                    glib::ControlFlow::Continue
+                });
             });
         }
 
@@ -467,11 +604,35 @@ mod windows {
     }
 
     pub fn run() {
-        if let Ok(exe) = std::env::current_exe() {
-            if let Some(dir) = exe.parent() {
-                setup_env(dir);
+        let self_exe = std::env::current_exe().unwrap_or_default();
+        let in_temp = self_exe.starts_with(std::env::temp_dir());
+
+        if !in_temp {
+            if let Some(install_dir) = existing_install() {
+                if self_exe.starts_with(&install_dir) {
+                    // Running from the install dir — copy to temp and relaunch from there
+                    // so the install dir has no DLL locks when we delete it.
+                    let tmp = temp_installer_dir();
+                    let tmp_exe = tmp.join("installer.exe");
+                    if tmp.exists() {
+                        if locked_by_other_process(&tmp) {
+                            show_native_error("Meow Simulator installer is already running.");
+                            return;
+                        }
+                        let _ = std::fs::remove_dir_all(&tmp);
+                    }
+                    if copy_dir(&install_dir, &tmp).is_ok() {
+                        let _ = std::process::Command::new(&tmp_exe)
+                            .env("MEOW_INSTALL_DIR", &install_dir)
+                            .creation_flags(CREATE_NO_WINDOW)
+                            .spawn();
+                    }
+                    return;
+                }
             }
         }
+
+        setup_env(&self_exe.parent().map(|p| p.to_path_buf()).unwrap_or_default());
         glib::set_application_name("Meow Simulator Installer");
         let app = adw::Application::builder().application_id(APP_ID).build();
         app.connect_activate(build_ui);
