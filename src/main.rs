@@ -143,6 +143,7 @@ fn build_ui(app: &AppType) {
     let button = Button::builder()
         .child(&image)
         .css_classes(["flat"])
+        .tooltip_text("Pet the boykisser to make it meow")
         .build();
 
     let meow_label = Label::new(Some(&format!("Meows: {}", meows.get())));

@@ -38,9 +38,7 @@ fn main() {
                 let name = entry.name().to_string();
                 let name = name.strip_prefix("windows/").unwrap_or(&name);
                 if name.is_empty() { continue; }
-                if entry.is_dir() {
-                    writer.add_directory(name, ()).unwrap();
-                } else {
+                if !entry.is_dir() {
                     writer.start_file(name, options).unwrap();
                     std::io::copy(&mut entry, &mut writer).unwrap();
                 }
