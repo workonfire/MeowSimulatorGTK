@@ -32,7 +32,8 @@ fn main() {
             let out_file = fs::File::create(&bundle_dest).unwrap();
             let mut writer = zip::ZipWriter::new(out_file);
             let options = zip::write::SimpleFileOptions::default()
-                .compression_method(zip::CompressionMethod::Zstd);
+                .compression_method(zip::CompressionMethod::Deflated)
+                .compression_level(Some(9));
             for i in 0..src.len() {
                 let mut entry = src.by_index(i).unwrap();
                 let name = entry.name().to_string();
