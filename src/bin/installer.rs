@@ -187,6 +187,7 @@ mod windows {
             );
         }
         let _ = RegKey::predef(HKEY_CURRENT_USER).delete_subkey_all(REG_KEY);
+        let _ = std::env::set_current_dir(std::env::temp_dir());
         std::fs::remove_dir_all(install_dir)
     }
 

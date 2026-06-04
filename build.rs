@@ -26,7 +26,26 @@ fn main() {
         println!("cargo:rerun-if-env-changed=BUNDLE_ZIP");
         let bundle_dest = Path::new(&out).join("bundle.zip");
         if let Ok(bundle_zip) = std::env::var("BUNDLE_ZIP") {
-            fs::copy(&bundle_zip, &bundle_dest).unwrap();
+            // Re-compress the portable zip with zstd for a smaller setup.exe embed
+            let src_data = fs::read(&bundle_zip).unwrap();
+            let mut src = zip::ZipArchive::new(std::io::Cursor::new(src_data)).unwrap();
+            let out_file = fs::File::create(&bundle_dest).unwrap();
+            let mut writer = zip::ZipWriter::new(out_file);
+            let options = zip::write::SimpleFileOptions::default()
+                .compression_method(zip::CompressionMethod::Zstd);
+            for i in 0..src.len() {
+                let mut entry = src.by_index(i).unwrap();
+                let name = entry.name().to_string();
+                let name = name.strip_prefix("windows/").unwrap_or(&name);
+                if name.is_empty() { continue; }
+                if entry.is_dir() {
+                    writer.add_directory(name, Default::default()).unwrap();
+                } else {
+                    writer.start_file(name, options).unwrap();
+                    std::io::copy(&mut entry, &mut writer).unwrap();
+                }
+            }
+            writer.finish().unwrap();
         } else if !bundle_dest.exists() {
             // minimal valid empty ZIP placeholder for non-setup builds
             fs::write(&bundle_dest, b"PK\x05\x06\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00").unwrap();
