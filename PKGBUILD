@@ -1,5 +1,5 @@
 pkgname=meow-simulator
-pkgver=1.0.4
+pkgver=1.0.5
 pkgrel=1
 pkgdesc="A boykisser on your computer"
 arch=('x86_64')
