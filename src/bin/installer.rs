@@ -137,7 +137,7 @@ mod windows {
         (|| -> windows::core::Result<bool> {
             let mut session = 0u32;
             let mut key = [0u16; 33];
-            unsafe { RmStartSession(&mut session, 0, PWSTR(key.as_mut_ptr()))? };
+            unsafe { RmStartSession(&mut session, Some(0), PWSTR(key.as_mut_ptr())).ok()? };
 
             struct RmSession(u32);
             impl Drop for RmSession {
@@ -146,7 +146,7 @@ mod windows {
             let _guard = RmSession(session);
 
             let ptrs: Vec<PCWSTR> = all_files.iter().map(|f| PCWSTR(f.as_ptr())).collect();
-            unsafe { RmRegisterResources(session, Some(&ptrs), None, None)? };
+            unsafe { RmRegisterResources(session, Some(&ptrs), None, None).ok()? };
 
             let mut needed = 0u32;
             let mut actual = 0u32;
@@ -156,7 +156,7 @@ mod windows {
 
             let mut infos = vec![RM_PROCESS_INFO::default(); needed as usize];
             actual = needed;
-            unsafe { RmGetList(session, &mut needed, &mut actual, Some(infos.as_mut_ptr()), &mut reboot)? };
+            unsafe { RmGetList(session, &mut needed, &mut actual, Some(infos.as_mut_ptr()), &mut reboot).ok()? };
 
             Ok(infos[..actual as usize].iter().any(|p| p.Process.dwProcessId != own_pid))
         })().unwrap_or(false)
@@ -170,12 +170,11 @@ mod windows {
     fn show_native_error(msg: &str) {
         use std::ffi::OsStr;
         use std::os::windows::ffi::OsStrExt;
-        use windows::Win32::Foundation::HWND;
         use windows::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_ICONERROR, MB_OK};
         use windows::core::PCWSTR;
         let title: Vec<u16> = OsStr::new("Meow Simulator").encode_wide().chain(std::iter::once(0)).collect();
         let text: Vec<u16> = OsStr::new(msg).encode_wide().chain(std::iter::once(0)).collect();
-        unsafe { let _ = MessageBoxW(HWND(0), PCWSTR(text.as_ptr()), PCWSTR(title.as_ptr()), MB_OK | MB_ICONERROR); }
+        unsafe { let _ = MessageBoxW(None, PCWSTR(text.as_ptr()), PCWSTR(title.as_ptr()), MB_OK | MB_ICONERROR); }
     }
 
     fn do_uninstall(install_dir: &Path) -> std::io::Result<()> {
