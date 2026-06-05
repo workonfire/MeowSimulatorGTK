@@ -49,23 +49,39 @@ fn save_config(config: &Config) {
     }
 }
 
+const REQUIRED_ASSETS: &[&str] = &[
+    "static.png",
+    "static2.png",
+    "meow1.ogg",
+    "meow2.ogg",
+    "meow3.ogg",
+    "meow4.ogg",
+    "purr.ogg",
+];
+
+fn has_all_assets(dir: &Path) -> bool {
+    REQUIRED_ASSETS.iter().all(|name| dir.join(name).is_file())
+}
+
 fn resolve_assets() -> PathBuf {
-    #[cfg(target_os = "linux")]
-    {
-        let system = Path::new("/usr/share/meow-simulator");
-        if system.is_dir() {
-            return system.to_path_buf();
-        }
-    }
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
+            // 1. assets bundled next to the binary (portable / Windows)
             let local = dir.join("assets");
-            if local.is_dir() {
+            if has_all_assets(&local) {
                 return local;
+            }
+            // 2. installed layout: <prefix>/bin/meow-simulator -> <prefix>/share/meow-simulator
+            let shared = dir.join("../share/meow-simulator");
+            if has_all_assets(&shared) {
+                return shared;
             }
         }
     }
-    panic!("could not locate assets directory");
+    panic!(
+        "could not locate assets (need: {})",
+        REQUIRED_ASSETS.join(", ")
+    );
 }
 
 fn path_to_uri(path: &Path) -> String {
