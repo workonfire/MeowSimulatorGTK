@@ -17,7 +17,7 @@ msgid "Meow Simulator"
 msgstr "Symulator Miauczenia"
 
 msgid "Pet the boykisser to make it meow"
-msgstr "Pogłaszcz boykissera, żeby zamruczał"
+msgstr "Pogłaszcz boykissera, żeby zamiauczał"
 
 msgid "Purr"
 msgstr "Mruczenie"
