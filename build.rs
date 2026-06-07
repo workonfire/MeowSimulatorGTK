@@ -22,11 +22,11 @@ fn main() {
 
     #[cfg(target_os = "windows")]
     {
-        // bundle.zip for setup.rs's include_bytes! — real zip injected by Makefile via BUNDLE_ZIP
         println!("cargo:rerun-if-env-changed=BUNDLE_ZIP");
-        let bundle_dest = Path::new(&out).join("bundle.zip");
+        println!("cargo:rustc-check-cfg=cfg(bundled)");
         if let Ok(bundle_zip) = std::env::var("BUNDLE_ZIP") {
-            // Re-compress the portable zip with zstd for a smaller setup.exe embed
+            println!("cargo:rustc-cfg=bundled");
+            let bundle_dest = Path::new(&out).join("bundle.zip");
             let src_data = fs::read(&bundle_zip).unwrap();
             let mut src = zip::ZipArchive::new(std::io::Cursor::new(src_data)).unwrap();
             let out_file = fs::File::create(&bundle_dest).unwrap();
@@ -45,9 +45,6 @@ fn main() {
                 }
             }
             writer.finish().unwrap();
-        } else if !bundle_dest.exists() {
-            // minimal valid empty ZIP placeholder for non-setup builds
-            fs::write(&bundle_dest, b"PK\x05\x06\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00").unwrap();
         }
 
         let ico_path = Path::new(&out).join("app.ico");

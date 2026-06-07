@@ -14,6 +14,7 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use gstreamer as gst;
 use gst::prelude::*;
+use gettextrs::{bindtextdomain, gettext, setlocale, textdomain, LocaleCategory};
 
 const APP_ID: &str = "com.wzium.MeowSimulator";
 
@@ -84,6 +85,24 @@ fn resolve_assets() -> PathBuf {
     );
 }
 
+fn setup_i18n() {
+    setlocale(LocaleCategory::LcAll, "");
+    let locale_dir = std::env::current_exe().ok()
+        .and_then(|exe| exe.parent().map(|d| d.to_path_buf()))
+        .and_then(|dir| {
+            // Windows / portable: share/locale next to the exe
+            let win = dir.join("share/locale");
+            if win.is_dir() { return Some(win); }
+            // installed Linux: <prefix>/bin/... -> <prefix>/share/locale
+            let lin = dir.join("../share/locale");
+            if lin.is_dir() { return Some(lin); }
+            None
+        })
+        .unwrap_or_else(|| PathBuf::from("/usr/share/locale"));
+    let _ = bindtextdomain("meow-simulator", locale_dir);
+    let _ = textdomain("meow-simulator");
+}
+
 fn path_to_uri(path: &Path) -> String {
     #[cfg(target_os = "windows")]
     {
@@ -145,7 +164,7 @@ fn build_ui(app: &AppType) {
 
     let window = ApplicationWindow::builder()
         .application(app)
-        .title("Meow Simulator")
+        .title(&gettext("Meow Simulator"))
         .default_width(300)
         .default_height(300)
         .build();
@@ -159,10 +178,10 @@ fn build_ui(app: &AppType) {
     let button = Button::builder()
         .child(&image)
         .css_classes(["flat"])
-        .tooltip_text("Pet the boykisser to make it meow")
+        .tooltip_text(&gettext("Pet the boykisser to make it meow"))
         .build();
 
-    let meow_label = Label::new(Some(&format!("Meows: {}", meows.get())));
+    let meow_label = Label::new(Some(&gettext("Meows: {count}").replace("{count}", &meows.get().to_string())));
 
     let vbox = GtkBox::new(Orientation::Vertical, 12);
     vbox.set_margin_top(20);
@@ -179,7 +198,7 @@ fn build_ui(app: &AppType) {
     menu_button.set_icon_name("open-menu-symbolic");
 
     let menu = gio::Menu::new();
-    menu.append(Some("Purr"), Some("app.purr"));
+    menu.append(Some(&gettext("Purr")), Some("app.purr"));
     let popover = gtk4::PopoverMenu::from_model(Some(&menu));
     menu_button.set_popover(Some(&popover));
     header.pack_start(&menu_button);
@@ -198,8 +217,8 @@ fn build_ui(app: &AppType) {
 
             if let Some(win) = window_weak.upgrade() {
                 let dialog = gtk4::AlertDialog::builder()
-                    .message("UwU")
-                    .detail("*purrs*")
+                    .message(&gettext("UwU"))
+                    .detail(&gettext("*purrs*"))
                     .build();
                 dialog.choose(Some(&win), None::<&gio::Cancellable>, move |_| {
                     if let Some(p) = purr {
@@ -226,7 +245,7 @@ fn build_ui(app: &AppType) {
             let count = meows.get() + 1;
             meows.set(count);
             save_config(&Config { meows: count });
-            meow_label.set_text(&format!("Meows: {count}"));
+            meow_label.set_text(&gettext("Meows: {count}").replace("{count}", &count.to_string()));
 
             let n = rand::thread_rng().gen_range(1..=4);
             play_sound(&assets.join(format!("meow{n}.ogg")));
@@ -266,9 +285,11 @@ fn main() {
         }
     }
 
+    setup_i18n();
+
     gst::init().expect("GStreamer init failed");
 
-    glib::set_application_name("Meow Simulator");
+    glib::set_application_name(&gettext("Meow Simulator"));
     let app = adw::Application::builder().application_id(APP_ID).build();
     app.connect_activate(build_ui);
     app.run();

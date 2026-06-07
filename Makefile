@@ -10,7 +10,7 @@ TARBALL   := dist/meow-simulator-linux.tar.gz
 
 OS := $(shell uname -s)
 
-.PHONY: all package package-windows package-linux stage-linux pkgbuild install uninstall build check-rust check-ucrt64 clean
+.PHONY: all package package-windows package-linux stage-linux pkgbuild install uninstall build check-rust check-ucrt64 clean update-pot
 
 all: package
 
@@ -40,7 +40,7 @@ check-ucrt64: check-rust
 	            mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-vulkan-loader \
 	            mingw-w64-ucrt-x86_64-gstreamer mingw-w64-ucrt-x86_64-gst-plugins-base \
 	            mingw-w64-ucrt-x86_64-gst-plugins-good mingw-w64-ucrt-x86_64-gst-plugins-bad \
-	            mingw-w64-ucrt-x86_64-libadwaita; do \
+	            mingw-w64-ucrt-x86_64-libadwaita mingw-w64-ucrt-x86_64-gettext-tools; do \
 	  pacman -Q $$pkg >/dev/null 2>&1 \
 	    || { echo "error: $$pkg not installed — run: pacman -S $$pkg"; exit 1; }; \
 	done
@@ -79,6 +79,11 @@ $(ZIP): check-ucrt64 build
 	   $(DIST_WIN)/lib/gdk-pixbuf-2.0/2.10.0/loaders/
 	ldd /ucrt64/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-png.dll 2>/dev/null \
 	  | grep -i ucrt64 | awk '{print $$3}' | xargs -I{} cp -n {} $(DIST_WIN)/
+	for po in po/*.po; do \
+	  lang=$$(basename $$po .po); \
+	  mkdir -p $(DIST_WIN)/share/locale/$$lang/LC_MESSAGES; \
+	  msgfmt -o $(DIST_WIN)/share/locale/$$lang/LC_MESSAGES/meow-simulator.mo $$po; \
+	done
 	cd dist && zip -r meow-simulator-windows.zip windows/
 
 $(SETUP_EXE): $(ZIP)
@@ -97,6 +102,11 @@ stage-linux: build
 	cp -r $(RELEASE)/assets/. $(DIST_LIN)/usr/share/meow-simulator/
 	cp $(RELEASE)/assets/static.png $(DIST_LIN)/usr/share/icons/hicolor/256x256/apps/meow-simulator.png
 	cp com.wzium.MeowSimulator.desktop $(DIST_LIN)/usr/share/applications/
+	for po in po/*.po; do \
+	  lang=$$(basename $$po .po); \
+	  mkdir -p $(DIST_LIN)/usr/share/locale/$$lang/LC_MESSAGES; \
+	  msgfmt -o $(DIST_LIN)/usr/share/locale/$$lang/LC_MESSAGES/meow-simulator.mo $$po; \
+	done
 
 $(TARBALL): stage-linux
 	tar -czf $(TARBALL) -C dist linux/
@@ -114,6 +124,15 @@ uninstall:
 	rm -rf $(DESTDIR)/usr/share/meow-simulator
 	rm -f  $(DESTDIR)/usr/share/icons/hicolor/256x256/apps/meow-simulator.png
 	rm -f  $(DESTDIR)/usr/share/applications/com.wzium.MeowSimulator.desktop
+	find $(DESTDIR)/usr/share/locale -name "meow-simulator.mo" -delete 2>/dev/null || true
+
+# ── i18n ──────────────────────────────────────────────────────────────────────
+
+update-pot:
+	xgettext --language=C --keyword=gettext --from-code=UTF-8 \
+	  --package-name=meow-simulator --package-version=$(shell grep '^version' Cargo.toml | head -1 | cut -d'"' -f2) \
+	  -o po/meow-simulator.pot \
+	  $$(cat po/POTFILES.in)
 
 # ── Common ────────────────────────────────────────────────────────────────────
 
