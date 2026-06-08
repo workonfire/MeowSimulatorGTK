@@ -16,6 +16,9 @@ msgstr ""
 msgid "Meow Simulator"
 msgstr "Symulator Miauczenia"
 
+msgid "A boykisser on your computer"
+msgstr "Boykisser na twoim komputerze"
+
 msgid "Pet the boykisser to make it meow"
 msgstr "Pogłaszcz boykissera, żeby zamiauczał"
 

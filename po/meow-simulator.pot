@@ -16,8 +16,12 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/main.rs
+#: com.wzium.MeowSimulator.desktop.in src/main.rs
 msgid "Meow Simulator"
+msgstr ""
+
+#: com.wzium.MeowSimulator.desktop.in
+msgid "A boykisser on your computer"
 msgstr ""
 
 #: src/main.rs

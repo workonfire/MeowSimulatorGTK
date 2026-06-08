@@ -101,7 +101,9 @@ stage-linux: build
 	cp $(RELEASE)/$(BINARY) $(DIST_LIN)/usr/bin/meow-simulator
 	cp -r $(RELEASE)/assets/. $(DIST_LIN)/usr/share/meow-simulator/
 	cp $(RELEASE)/assets/static.png $(DIST_LIN)/usr/share/icons/hicolor/256x256/apps/meow-simulator.png
-	cp com.wzium.MeowSimulator.desktop $(DIST_LIN)/usr/share/applications/
+	msgfmt --desktop -d po/ \
+	  --template=com.wzium.MeowSimulator.desktop.in \
+	  -o $(DIST_LIN)/usr/share/applications/com.wzium.MeowSimulator.desktop
 	for po in po/*.po; do \
 	  lang=$$(basename $$po .po); \
 	  mkdir -p $(DIST_LIN)/usr/share/locale/$$lang/LC_MESSAGES; \
