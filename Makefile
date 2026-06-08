@@ -23,7 +23,7 @@ else
 	$(error Unsupported OS: $(OS). Use 'make package-linux' or 'make package-windows' explicitly.)
 endif
 
-# ── Windows ───────────────────────────────────────────────────────────────────
+# Windows
 
 check-rust:
 	@command -v rustc >/dev/null 2>&1 \
@@ -90,7 +90,7 @@ $(SETUP_EXE): $(ZIP)
 	BUNDLE_ZIP=$$(cd dist && pwd)/meow-simulator-windows.zip cargo build --release --bin setup
 	cp $(RELEASE)/setup.exe $(SETUP_EXE)
 
-# ── Linux ─────────────────────────────────────────────────────────────────────
+# Linux
 
 package-linux: $(TARBALL)
 
@@ -114,7 +114,7 @@ $(TARBALL): stage-linux
 pkgbuild: package-linux
 	makepkg -f
 
-# ── Install ───────────────────────────────────────────────────────────────────
+# Install
 
 install: stage-linux
 	cp -r $(DIST_LIN)/. $(DESTDIR)/
@@ -126,7 +126,7 @@ uninstall:
 	rm -f  $(DESTDIR)/usr/share/applications/com.wzium.MeowSimulator.desktop
 	find $(DESTDIR)/usr/share/locale -name "meow-simulator.mo" -delete 2>/dev/null || true
 
-# ── i18n ──────────────────────────────────────────────────────────────────────
+# i18n
 
 update-pot:
 	xgettext --language=C --keyword=gettext --from-code=UTF-8 \
@@ -134,7 +134,7 @@ update-pot:
 	  -o po/meow-simulator.pot \
 	  $$(cat po/POTFILES.in)
 
-# ── Common ────────────────────────────────────────────────────────────────────
+# Common
 
 build:
 	cargo build --release

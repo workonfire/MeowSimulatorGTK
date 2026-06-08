@@ -229,7 +229,7 @@ mod windows {
         let stack = Stack::new();
         stack.set_transition_duration(250);
 
-        // ── Welcome ──────────────────────────────────────────────────────────
+        // Welcome
         let welcome = GtkBox::new(Orientation::Vertical, 0);
         welcome.set_margin_top(30);
         welcome.set_margin_bottom(20);
@@ -267,7 +267,7 @@ mod windows {
 
         stack.add_named(&welcome, Some("welcome"));
 
-        // ── Options ──────────────────────────────────────────────────────────
+        // Options
         let options = GtkBox::new(Orientation::Vertical, 0);
         options.set_margin_top(20);
         options.set_margin_bottom(20);
@@ -325,7 +325,7 @@ mod windows {
 
         stack.add_named(&options, Some("options"));
 
-        // ── Complete ──────────────────────────────────────────────────────────
+        // Complete
         let complete = GtkBox::new(Orientation::Vertical, 0);
         complete.set_margin_top(30);
         complete.set_margin_bottom(30);
@@ -364,7 +364,7 @@ mod windows {
 
         stack.add_named(&complete, Some("complete"));
 
-        // ── Uninstall page ────────────────────────────────────────────────────
+        // Uninstall page
         let uninstall_page = GtkBox::new(Orientation::Vertical, 0);
         uninstall_page.set_margin_top(30);
         uninstall_page.set_margin_bottom(30);
@@ -411,7 +411,7 @@ mod windows {
             stack.set_visible_child_name("uninstall");
         }
 
-        // ── Next: welcome → options ───────────────────────────────────────────
+        // Next: welcome → options
         {
             let stack = stack.clone();
             next_btn.connect_clicked(move |_| {
@@ -420,7 +420,7 @@ mod windows {
             });
         }
 
-        // ── Previous: options → welcome ───────────────────────────────────────
+        // Previous: options → welcome
         {
             let stack = stack.clone();
             prev_btn.connect_clicked(move |_| {
@@ -429,7 +429,7 @@ mod windows {
             });
         }
 
-        // ── Browse ────────────────────────────────────────────────────────────
+        // Browse
         {
             let entry = entry.clone();
             let window_weak = window.downgrade();
@@ -447,7 +447,7 @@ mod windows {
             });
         }
 
-        // ── Install ───────────────────────────────────────────────────────────
+        // Install
         {
             let stack = stack.clone();
             let entry = entry.clone();
@@ -507,7 +507,7 @@ mod windows {
             });
         }
 
-        // ── Uninstall ─────────────────────────────────────────────────────────
+        // Uninstall
         if let Some(install_path) = existing {
             let window_weak = window.downgrade();
             uninstall_btn.connect_clicked(move |btn| {
@@ -586,7 +586,7 @@ mod windows {
             });
         }
 
-        // ── Finish ────────────────────────────────────────────────────────────
+        // Finish
         {
             let window_weak = window.downgrade();
             finish_btn.connect_clicked(move |_| {
