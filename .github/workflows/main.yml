@@ -92,7 +92,8 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: windows-cargo-${{ hashFiles('Cargo.lock') }}
+            installer/target
+          key: windows-cargo-${{ hashFiles('Cargo.lock', 'installer/Cargo.lock') }}
 
       - name: Package
         run: make package-windows
