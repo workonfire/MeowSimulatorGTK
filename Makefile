@@ -53,7 +53,6 @@ $(ZIP): check-ucrt64 build
 	rm -rf $(DIST_WIN)
 	mkdir -p $(DIST_WIN)/share/glib-2.0
 	cp $(RELEASE)/$(BINARY).exe $(DIST_WIN)/
-	cp $(RELEASE)/installer.exe $(DIST_WIN)/
 	ldd $(RELEASE)/$(BINARY).exe \
 	  | grep -i ucrt64 \
 	  | awk '{print $$3}' \
@@ -87,8 +86,8 @@ $(ZIP): check-ucrt64 build
 	cd dist && zip -r meow-simulator-windows.zip windows/
 
 $(SETUP_EXE): $(ZIP)
-	BUNDLE_ZIP=$$(cd dist && pwd)/meow-simulator-windows.zip cargo build --release --bin setup
-	cp $(RELEASE)/setup.exe $(SETUP_EXE)
+	$(MAKE) -C installer package-windows INSTALLER_ENV=../installer.env
+	cp installer/dist/gtkwininstaller-setup.exe $(SETUP_EXE)
 
 # Linux
 

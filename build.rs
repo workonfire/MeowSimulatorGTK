@@ -22,31 +22,6 @@ fn main() {
 
     #[cfg(target_os = "windows")]
     {
-        println!("cargo:rerun-if-env-changed=BUNDLE_ZIP");
-        println!("cargo:rustc-check-cfg=cfg(bundled)");
-        if let Ok(bundle_zip) = std::env::var("BUNDLE_ZIP") {
-            println!("cargo:rustc-cfg=bundled");
-            let bundle_dest = Path::new(&out).join("bundle.zip");
-            let src_data = fs::read(&bundle_zip).unwrap();
-            let mut src = zip::ZipArchive::new(std::io::Cursor::new(src_data)).unwrap();
-            let out_file = fs::File::create(&bundle_dest).unwrap();
-            let mut writer = zip::ZipWriter::new(out_file);
-            let options = zip::write::SimpleFileOptions::default()
-                .compression_method(zip::CompressionMethod::Deflated)
-                .compression_level(Some(9));
-            for i in 0..src.len() {
-                let mut entry = src.by_index(i).unwrap();
-                let name = entry.name().to_string();
-                let name = name.strip_prefix("windows/").unwrap_or(&name);
-                if name.is_empty() { continue; }
-                if !entry.is_dir() {
-                    writer.start_file(name, options).unwrap();
-                    std::io::copy(&mut entry, &mut writer).unwrap();
-                }
-            }
-            writer.finish().unwrap();
-        }
-
         let ico_path = Path::new(&out).join("app.ico");
         let img = image::open("assets/static.png").expect("failed to open icon");
         let resized = img.resize(256, 256, image::imageops::FilterType::Lanczos3);

@@ -15,18 +15,9 @@ gettext-rs = { version = "0.7", features = ["gettext-system"] }
 
 libadwaita = { version = "0.7", features = ["v1_6"] }
 
-[target.'cfg(windows)'.dependencies]
-zip = { version = "2", default-features = false, features = ["deflate"] }
-winreg = "0.52"
-windows = { version = "0.59", features = [
-    "Win32_System_RestartManager",
-    "Win32_UI_WindowsAndMessaging",
-] }
-
 [target.'cfg(target_os = "windows")'.build-dependencies]
 image = { version = "0.25", default-features = false, features = ["png", "ico"] }
 winresource = "0.1"
-zip = { version = "2", default-features = false, features = ["deflate"] }
 
 [profile.release]
 strip = true

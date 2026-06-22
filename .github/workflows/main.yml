@@ -58,6 +58,8 @@ jobs:
         shell: msys2 {0}
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
 
       - name: Set up MSYS2
         uses: msys2/setup-msys2@v2
@@ -77,6 +79,7 @@ jobs:
             mingw-w64-ucrt-x86_64-gst-plugins-bad
             mingw-w64-ucrt-x86_64-libadwaita
             mingw-w64-ucrt-x86_64-gettext-tools
+            mingw-w64-ucrt-x86_64-librsvg
             make
             zip
         env:
